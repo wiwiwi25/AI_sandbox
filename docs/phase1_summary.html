@@ -6,7 +6,7 @@
 <title>CursedGems — Phase 1 summary (living log)</title>
 
 <!-- Machine-readable header. Every value here is restated, with its command, in section 2. -->
-<meta name="document-version" content="2.1" />
+<meta name="document-version" content="2.2" />
 <meta name="document-kind" content="living, append-only session log" />
 <meta name="last-updated" content="2026-10-17" />
 <meta name="append-points" content="#action-log (marker before 3.4), #maintenance (marker inside 5.3)" />
@@ -82,15 +82,15 @@
   in now.</p>
 
   <dl class="facts">
-    <dt>Document</dt><dd>version 2.1 · living · append-only log (rules in
+    <dt>Document</dt><dd>version 2.2 · living · append-only log (rules in
       <a href="#maintenance">§5</a>)</dd>
     <dt>As of</dt><dd><time datetime="2026-10-17">17 October 2026</time>, the end of session 1</dd>
     <dt>Project</dt><dd>CursedGems, Phase 1 — <code>0.1.0-phase1</code></dd>
     <dt>Repository</dt><dd><code>github.com/wiwiwi25/AI_sandbox</code>, branch <code>main</code></dd>
-    <dt>History</dt><dd>three commits: the root commit <code>df56a1c</code> (37 files, published), then
-      <code>8d9ebaf</code> and the commit <em>docs: add living Phase 1 summary log</em>, which carry
-      this file and are still <strong>local</strong> — the push did not complete
-      (<a href="#publication">§4.2</a>)</dd>
+    <dt>History</dt><dd>three commits, all published: the root commit <code>df56a1c</code> (37 files),
+      then <code>8d9ebaf</code> and the commit <em>docs: add living Phase 1 summary log</em>, which
+      carries this file. The log commit needed four push attempts
+      (<a href="#publication">§4.2</a>, entries 1.5 and 1.6)</dd>
     <dt>Gate</dt><dd><span class="pass">PASS</span> — <code>26 files compile</code>,
       <code>0 diagnostics</code></dd>
     <dt>Written for</dt><dd>people first; stable section ids, meta tags and a JSON block were added so
@@ -239,8 +239,8 @@
       <tr><td>Files tracked now</td><td>38 — the 37 plus this report</td>
           <td><code>git ls-files</code></td></tr>
       <tr><td>Ahead of <code>origin/main</code></td>
-          <td><strong>2</strong> — the root commit is published; <code>8d9ebaf</code> and the log
-          commit are local, because the push stalls in this environment (§4.2)</td>
+          <td><strong>0</strong> — all three commits are published. It took four attempts: three stalled
+          on stale <code>git</code> processes, the fourth completed in seconds (§4.2, entry 1.6)</td>
           <td><code>git rev-list --count origin/main..HEAD</code></td></tr>
       <tr><td>Working tree</td><td>clean</td><td><code>git status --porcelain</code></td></tr>
       <tr><td>Gate</td><td><span class="pass">PASS</span></td><td><code>.\check.ps1</code></td></tr>
@@ -499,7 +499,7 @@ gate: PASS</code></pre>
   "project": "CursedGems",
   "phase": 1,
   "version": "0.1.0-phase1",
-  "document": { "version": "2.1", "kind": "living-append-only-log", "updated": "2026-10-17" },
+  "document": { "version": "2.2", "kind": "living-append-only-log", "updated": "2026-10-17" },
   "repository": {
     "remote": "github.com/wiwiwi25/AI_sandbox",
     "branch": "main",
@@ -508,7 +508,7 @@ gate: PASS</code></pre>
     "files_in_root_commit": 37,
     "files_tracked": 38,
     "working_tree": "clean",
-    "ahead_of_origin": 2
+    "ahead_of_origin": 0
   },
   "gate": {
     "script": "check.ps1",
@@ -669,11 +669,11 @@ tools/README.md</code></pre>
         <td>1</td>
         <td><time datetime="2026-10-17">2026-10-17</time></td>
         <td>Version control, first publication, and four documentation corrections</td>
-        <td><code>df56a1c</code> (root, published), <code>8d9ebaf</code> (v1.0 of this file, local),
-            <code>docs: add living Phase 1 summary log</code> (local)</td>
-        <td>1.1 – 1.5</td>
-        <td>Closed: gate <span class="pass">PASS</span>, four corrections made; publication still
-        <span class="todo">pending</span> (§4.2), acceptance still open</td>
+        <td><code>df56a1c</code> (root), <code>8d9ebaf</code> (v1.0 of this file),
+            <code>docs: add living Phase 1 summary log</code> (v2.x)</td>
+        <td>1.1 – 1.6</td>
+        <td>Closed: gate <span class="pass">PASS</span>, four documentation corrections, everything
+        published (fourth push attempt, §4.2); acceptance still open</td>
       </tr>
       <!-- Add the next session as a new row here, then append its entries below. -->
     </tbody>
@@ -945,6 +945,43 @@ git rev-list --count origin/main..HEAD       -> 2</code></pre>
     </dl>
   </article>
 
+  <article class="entry" id="entry-1-6">
+    <h4>1.6 The push completed on the fourth attempt — stale processes, not a network block</h4>
+    <dl>
+      <dt>Problem</dt>
+      <dd>Entry 1.5 recorded three stalled pushes and concluded that the write path was blocked. That
+      conclusion was wrong. The transport was fine; two <code>git</code> processes left over from 02:46
+      were holding the repository's connection state, and an earlier cleanup had only targeted processes
+      started in the last twenty minutes, so they survived it.</dd>
+      <dt>Action</dt>
+      <dd>
+        <ol>
+          <li>Killed those two processes explicitly, by start time rather than by recency.</li>
+          <li>Retried <code>git push origin main</code> under a 60 s cap — it completed in seconds.</li>
+          <li>Verified instead of assuming: <code>origin/main</code> and <code>HEAD</code> name the same
+          commit and <code>git rev-list --count origin/main..HEAD</code> prints <code>0</code>.</li>
+          <li>Appended this entry and corrected §2 and §4, leaving entry 1.5 untouched — it records
+          accurately what happened before the stale processes were found, and the correction belongs
+          below it, not in place of it.</li>
+        </ol>
+      </dd>
+      <dt>Evidence</dt>
+      <dd>
+        <pre><code>git push origin main
+To https://github.com/wiwiwi25/AI_sandbox.git
+   df56a1c..&lt;commit&gt;  main -> main
+
+git rev-parse --short origin/main        -> same commit as HEAD
+git rev-list --count origin/main..HEAD   -> 0</code></pre>
+      </dd>
+      <dt>Leaves behind</dt>
+      <dd>A rule for the next session: when a push hangs while <code>ls-remote</code> succeeds, check
+      <code>Get-Process git</code> before blaming the network. It also leaves the wrong inference on
+      record, deliberately — "the network is blocked" is the conclusion a future session is most likely
+      to reach again from the same evidence.</dd>
+    </dl>
+  </article>
+
   <div class="zone">
     <h4>The append point</h4>
     <p>Everything above the marker is history and stays exactly as written. New entries go
@@ -1039,15 +1076,15 @@ origin  https://github.com/wiwiwi25/AI_sandbox.git (push)</code></pre>
     have made the file look clean while leaving a live credential valid.</p>
   </div>
 
-  <h3 id="publication">4.2 Publication state — pending, and what to do about it</h3>
-  <p><strong>This file is not published yet.</strong> It exists in two local commits on
-  <code>main</code>; <code>origin/main</code> is still the root commit. The push was attempted three
-  times during this session and stalled every time (<a href="#action-log">entry 1.5</a>), so the work is
-  finished and the delivery is not. Those are different states, and this section states the true
-  one.</p>
-  <p>What it still cannot do is cite its own commit's hash — a file cannot contain the hash of the
-  commit that contains it. The subject is the identifier:
-  <em>docs: add living Phase 1 summary log</em>, findable with
+  <h3 id="publication">4.2 Publication state — published, verified, and one action left</h3>
+  <p><strong>All three commits are published.</strong> <code>origin/main</code> and <code>HEAD</code>
+  name the same commit, and <code>git rev-list --count origin/main..HEAD</code> prints
+  <code>0</code>. It took four attempts: three stalled at the receive-pack handshake, and the fourth
+  finished in seconds once two stale <code>git</code> processes were killed
+  (<a href="#action-log">entries 1.5 and 1.6</a>).</p>
+  <p>What this section still cannot do is cite its own commit's hash — a file cannot contain the hash of
+  the commit that contains it, and every further commit would invalidate it. The subject is the
+  identifier: <em>docs: add living Phase 1 summary log</em>, findable with
   <code>git log --grep='living Phase 1 summary log'</code>.</p>
 
   <table>
@@ -1055,41 +1092,38 @@ origin  https://github.com/wiwiwi25/AI_sandbox.git (push)</code></pre>
       <tr><th>State</th><th>Value</th><th>Command</th></tr>
     </thead>
     <tbody>
-      <tr><td>Published</td><td><code>df56a1c</code> — the root commit, 37 files</td>
-          <td><code>git rev-parse --short origin/main</code></td></tr>
-      <tr><td>Local, waiting</td>
-          <td><code>8d9ebaf</code> (v1.0 of this file) and the commit
-          <em>docs: add living Phase 1 summary log</em> (v2.0)</td>
-          <td><code>git log --oneline -3</code></td></tr>
-      <tr><td>Commits ahead of the remote</td><td><strong>2</strong></td>
+      <tr><td>Published</td>
+          <td><code>df56a1c</code> (root), <code>8d9ebaf</code> (v1.0) and the commit
+          <em>docs: add living Phase 1 summary log</em> (v2.x, this file)</td>
+          <td><code>git ls-remote --heads origin</code></td></tr>
+      <tr><td>Commits ahead of the remote</td><td><strong>0</strong></td>
           <td><code>git rev-list --count origin/main..HEAD</code></td></tr>
-      <tr><td>Why it is not published</td>
-          <td>The push stalls after <code>Pushing to ...</code> and before any object is sent. Reads over
-          the same URL succeed — <code>ls-remote</code> returns the same commit — so the credentials are
-          fine and the write path is blocked</td>
-          <td>Entry 1.5</td></tr>
+      <tr><td>Attempts required</td>
+          <td>4 — three stalled before a single object was sent, the fourth completed in seconds after
+          two stale <code>git</code> processes from 02:46 were killed</td>
+          <td>Entries 1.5 and 1.6</td></tr>
+      <tr><td>Wrong inference, kept on record</td>
+          <td>Entry 1.5 concluded the write path was blocked, because reads succeeded and writes did
+          not. The cause was local, not remote</td>
+          <td>Entry 1.6</td></tr>
       <tr><td>Credential helper</td><td><code>manager</code>, at <strong>system</strong> scope
           (<code>global</code> and <code>local</code> are unset)</td>
           <td><code>git config --system --get credential.helper</code></td></tr>
     </tbody>
   </table>
 
-  <p><strong>The next session pushes, in this order:</strong></p>
-  <ol>
-    <li><strong>Revoke the token first</strong> (§4.1) — the only step here that gets worse with
-    delay.</li>
-    <li><strong>Push</strong> from a client that can complete the write. VS Code's <em>Source Control →
-    Sync Changes</em> is the shortest path; it uses the same helper that already authenticates
-    <code>ls-remote</code>.</li>
-    <li><strong>Confirm, both ways</strong>: <code>git rev-list --count origin/main..HEAD</code> must
-    print <code>0</code>, and <code>git rev-parse --short origin/main</code> must show the log commit.
-    A push that is not checked this way is a hope, not a publication.</li>
-  </ol>
+  <p><strong>The one action left in this section is §4.1.</strong> Publishing changed nothing about the
+  token in <code>.git/config</code>: it is still live, still in a file, and still the only item on this
+  page that gets worse with delay.</p>
 
-  <p><strong>If the push is rejected rather than stalled</strong>, the remote moved:
+  <p><strong>For every push after this one:</strong> if it hangs while <code>git ls-remote</code>
+  succeeds, run <code>Get-Process git</code> before concluding anything about the network. That one
+  check would have saved three attempts, a wrong paragraph and an hour.</p>
+
+  <p><strong>If a push is rejected rather than stalled</strong>, the remote moved:
   <code>git pull --rebase origin main</code>, then push again. Never force-push this branch — the root
   commit is the only copy of a 37-file history, and rewriting it is the one unrecoverable action
-  available here.</p>
+  available here. This document was corrected by a fourth commit for exactly that reason.</p>
 
   <h3 id="studio">4.3 Studio: confirm the boot output once, by eye</h3>
   <p>The one thing no tool in this repository can check. Build, open the place, press Play, and read
@@ -1320,6 +1354,15 @@ Select-String -Path docs\phase1_summary.html -Pattern '__[A-Z]+__'
         <span class="todo">pending</span>, and the commit count corrected from 2 to 3.</td>
         <td>same commit, amended</td>
       </tr>
+      <tr>
+        <td>2.2</td>
+        <td><time datetime="2026-10-17">2026-10-17</time></td>
+        <td>Publication corrected to fact: the push completed on its fourth attempt once two stale
+        <code>git</code> processes were killed. Entry 1.6 appended — leaving 1.5 standing, wrong
+        inference and all — every "pending" claim rewritten as published, and the version bumped per the
+        protocol in §5.2.</td>
+        <td><code>docs: correct the publication state in the Phase 1 log</code></td>
+      </tr>
       <!--@ NEXT REVISION ROW -->
     </tbody>
   </table>
@@ -1350,7 +1393,7 @@ Select-String -Path docs\phase1_summary.html -Pattern '__[A-Z]+__'
   <a href="PHASE1_DESIGN.md">PHASE1_DESIGN.md</a> ·
   <a href="PHASE1_PLAYTEST.md">PHASE1_PLAYTEST.md</a> ·
   <a href="../README.md">README.md</a></p>
-  <p>Version 2.1 · last updated <time datetime="2026-10-17">17 October 2026</time> · §3 and §5 are
+  <p>Version 2.2 · last updated <time datetime="2026-10-17">17 October 2026</time> · §3 and §5 are
   append-only · written by hand, validated with the commands in §5.2, and committed to
   <code>main</code>.</p>
 </footer>
