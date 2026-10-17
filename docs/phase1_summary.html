@@ -6,7 +6,7 @@
 <title>CursedGems — Phase 1 summary (living log)</title>
 
 <!-- Machine-readable header. Every value here is restated, with its command, in section 2. -->
-<meta name="document-version" content="2.2" />
+<meta name="document-version" content="2.3" />
 <meta name="document-kind" content="living, append-only session log" />
 <meta name="last-updated" content="2026-10-17" />
 <meta name="append-points" content="#action-log (marker before 3.4), #maintenance (marker inside 5.3)" />
@@ -82,15 +82,15 @@
   in now.</p>
 
   <dl class="facts">
-    <dt>Document</dt><dd>version 2.2 · living · append-only log (rules in
+    <dt>Document</dt><dd>version 2.3 · living · append-only log (rules in
       <a href="#maintenance">§5</a>)</dd>
     <dt>As of</dt><dd><time datetime="2026-10-17">17 October 2026</time>, the end of session 1</dd>
     <dt>Project</dt><dd>CursedGems, Phase 1 — <code>0.1.0-phase1</code></dd>
     <dt>Repository</dt><dd><code>github.com/wiwiwi25/AI_sandbox</code>, branch <code>main</code></dd>
-    <dt>History</dt><dd>three commits, all published: the root commit <code>df56a1c</code> (37 files),
-      then <code>8d9ebaf</code> and the commit <em>docs: add living Phase 1 summary log</em>, which
-      carries this file. The log commit needed four push attempts
-      (<a href="#publication">§4.2</a>, entries 1.5 and 1.6)</dd>
+    <dt>History</dt><dd>all published: the root commit <code>df56a1c</code> (37 files), then
+      <code>8d9ebaf</code>, the commit <em>docs: add living Phase 1 summary log</em> which carries this
+      file, and the corrections made after it. No total is cited, deliberately — see
+      <a href="#state">§2.1</a></dd>
     <dt>Gate</dt><dd><span class="pass">PASS</span> — <code>26 files compile</code>,
       <code>0 diagnostics</code></dd>
     <dt>Written for</dt><dd>people first; stable section ids, meta tags and a JSON block were added so
@@ -231,7 +231,11 @@
     </thead>
     <tbody>
       <tr><td>Branch</td><td><code>main</code></td><td><code>git branch --show-current</code></td></tr>
-      <tr><td>Commits on the branch</td><td>3</td><td><code>git rev-list --count HEAD</code></td></tr>
+      <tr><td>Commits on the branch</td>
+          <td><strong>Not cited, on purpose.</strong> Every correction of this document adds a commit, so
+          a total is stale the moment it is written: the first draft said two while there were three,
+          and revision 2.2 said three while there were four (§5.3). Count it instead of quoting it</td>
+          <td><code>git rev-list --count HEAD</code></td></tr>
       <tr><td>Root commit</td><td><code>df56a1c95768ef84f41d06dd6d0fe3394f2895d8</code></td>
           <td><code>git rev-list --max-parents=0 HEAD</code></td></tr>
       <tr><td>Files in the root commit</td><td>37</td>
@@ -499,11 +503,10 @@ gate: PASS</code></pre>
   "project": "CursedGems",
   "phase": 1,
   "version": "0.1.0-phase1",
-  "document": { "version": "2.2", "kind": "living-append-only-log", "updated": "2026-10-17" },
+  "document": { "version": "2.3", "kind": "living-append-only-log", "updated": "2026-10-17" },
   "repository": {
     "remote": "github.com/wiwiwi25/AI_sandbox",
     "branch": "main",
-    "commits": 3,
     "root_commit": "df56a1c",
     "files_in_root_commit": 37,
     "files_tracked": 38,
@@ -670,7 +673,7 @@ tools/README.md</code></pre>
         <td><time datetime="2026-10-17">2026-10-17</time></td>
         <td>Version control, first publication, and four documentation corrections</td>
         <td><code>df56a1c</code> (root), <code>8d9ebaf</code> (v1.0 of this file),
-            <code>docs: add living Phase 1 summary log</code> (v2.x)</td>
+            <code>docs: add living Phase 1 summary log</code> (v2.x, plus corrections after it)</td>
         <td>1.1 – 1.6</td>
         <td>Closed: gate <span class="pass">PASS</span>, four documentation corrections, everything
         published (fourth push attempt, §4.2); acceptance still open</td>
@@ -1077,7 +1080,7 @@ origin  https://github.com/wiwiwi25/AI_sandbox.git (push)</code></pre>
   </div>
 
   <h3 id="publication">4.2 Publication state — published, verified, and one action left</h3>
-  <p><strong>All three commits are published.</strong> <code>origin/main</code> and <code>HEAD</code>
+  <p><strong>Everything is published.</strong> <code>origin/main</code> and <code>HEAD</code>
   name the same commit, and <code>git rev-list --count origin/main..HEAD</code> prints
   <code>0</code>. It took four attempts: three stalled at the receive-pack handshake, and the fourth
   finished in seconds once two stale <code>git</code> processes were killed
@@ -1093,8 +1096,8 @@ origin  https://github.com/wiwiwi25/AI_sandbox.git (push)</code></pre>
     </thead>
     <tbody>
       <tr><td>Published</td>
-          <td><code>df56a1c</code> (root), <code>8d9ebaf</code> (v1.0) and the commit
-          <em>docs: add living Phase 1 summary log</em> (v2.x, this file)</td>
+          <td>The root commit <code>df56a1c</code>, <code>8d9ebaf</code> (v1.0), the commit
+          <em>docs: add living Phase 1 summary log</em>, and every correction since</td>
           <td><code>git ls-remote --heads origin</code></td></tr>
       <tr><td>Commits ahead of the remote</td><td><strong>0</strong></td>
           <td><code>git rev-list --count origin/main..HEAD</code></td></tr>
@@ -1363,6 +1366,14 @@ Select-String -Path docs\phase1_summary.html -Pattern '__[A-Z]+__'
         protocol in §5.2.</td>
         <td><code>docs: correct the publication state in the Phase 1 log</code></td>
       </tr>
+      <tr>
+        <td>2.3</td>
+        <td><time datetime="2026-10-17">2026-10-17</time></td>
+        <td>Removed the commit total. It invalidated itself on every correction — the first draft said
+        two while there were three, and revision 2.2 said three while there were four — so §2.1 now
+        explains why a total is not cited, and the JSON block no longer carries one.</td>
+        <td><code>docs: stop counting commits in the Phase 1 log</code></td>
+      </tr>
       <!--@ NEXT REVISION ROW -->
     </tbody>
   </table>
@@ -1393,7 +1404,7 @@ Select-String -Path docs\phase1_summary.html -Pattern '__[A-Z]+__'
   <a href="PHASE1_DESIGN.md">PHASE1_DESIGN.md</a> ·
   <a href="PHASE1_PLAYTEST.md">PHASE1_PLAYTEST.md</a> ·
   <a href="../README.md">README.md</a></p>
-  <p>Version 2.2 · last updated <time datetime="2026-10-17">17 October 2026</time> · §3 and §5 are
+  <p>Version 2.3 · last updated <time datetime="2026-10-17">17 October 2026</time> · §3 and §5 are
   append-only · written by hand, validated with the commands in §5.2, and committed to
   <code>main</code>.</p>
 </footer>
