@@ -1,0 +1,9 @@
+# Never index the vendors, the build output or the generated sourcemap: they are
+# thousands of lines of other people's code, and they bury the ~2,500 lines that
+# are actually this project.
+tools/**
+build/**
+sourcemap.json
+*.rbxlx
+*.rbxl
+*.rbxm

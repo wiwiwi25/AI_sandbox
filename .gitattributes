@@ -1,0 +1,19 @@
+# ============================================================================
+#  CursedGems :: line endings and binary files
+# ============================================================================
+#  The gate runs `stylua --check`, and .stylua.toml pins line_endings = "Unix".
+#  Git for Windows installs with core.autocrlf=true, which would check these
+#  sources out as CRLF and fail step 1 of check.ps1 on a fresh clone. Pin LF in
+#  the index *and* the working tree so a clone is byte-identical to this one.
+#
+#  The project is developed on Windows but the files are Unix-convention; that
+#  is why this is forced rather than left to `text=auto` alone.
+# ============================================================================
+
+* text=auto eol=lf
+
+# Never let Git "normalise" a place file or a model.
+*.rbxl  binary
+*.rbxlx binary
+*.rbxm  binary
+*.rbxmx binary

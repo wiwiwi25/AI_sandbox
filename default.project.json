@@ -1,0 +1,35 @@
+{
+  "name": "CursedGems",
+  "tree": {
+    "$className": "DataModel",
+    "Players": {
+      "$className": "Players",
+      "$ignoreUnknownInstances": true,
+      "$properties": { "CharacterAutoLoads": false }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "$ignoreUnknownInstances": true,
+      "CursedGems": { "$path": "src/shared" }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "$ignoreUnknownInstances": true,
+      "CursedGems": { "$path": "src/server" }
+    },
+    "TextChatService": {
+      "$className": "TextChatService",
+      "$ignoreUnknownInstances": true,
+      "$properties": { "ChatVersion": "TextChatService" }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "$ignoreUnknownInstances": true,
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "$ignoreUnknownInstances": true,
+        "CursedGems": { "$path": "src/client" }
+      }
+    }
+  }
+}

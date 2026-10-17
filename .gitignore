@@ -1,0 +1,30 @@
+# ============================================================================
+#  CursedGems :: what is not this project
+# ============================================================================
+#  Mirrors .cursorignore, which already keeps these paths out of the editor's
+#  context: everything below is either a third-party download or a file one of
+#  the tools regenerates, so a fresh clone is the ~2,500 lines of project code
+#  and nothing else.
+#
+#  Note what is deliberately absent: *.rbxm / *.rbxmx. Models are the first
+#  assets this repository will actually own (docs/PHASE1_DESIGN.md section 8),
+#  so they must stay committable. The single .rbxm in the tree is the Rojo
+#  Studio plugin, and `tools/*` below already covers it.
+# ============================================================================
+
+# Vendored toolchain: four executables, globalTypes.d.luau, the four release
+# zips and the Rojo Studio plugin (~64 MB in total). tools/README.md lists what
+# the gate needs and where each file comes from.
+tools/*
+!tools/README.md
+
+# Generated: the sourcemap the gate rebuilds every run, and build/ (the built
+# place, analyze.txt, and the lock file Studio drops beside an open place).
+sourcemap.json
+build/
+
+# A place file only ever appears here as build output; these patterns are a
+# backstop for a rebuild aimed at the repository root instead of build/.
+*.rbxl
+*.rbxlx
+*.lock
