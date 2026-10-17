@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>CursedGems — Phase 1 summary (compacted living log)</title>
-<!-- Machine-readable header. Canonical state block: §2. Compacted 3.0 — see §5.3. -->
-<meta name="document-version" content="3.0" />
+<!-- Machine-readable header. Canonical state block: §2. Compacted 3.1 — see §5.3. -->
+<meta name="document-version" content="3.1" />
 <meta name="document-kind" content="living, append-only session log" />
 <meta name="compaction" content="visual: details/summary; data: one JSON block; prose: claims only" />
 <meta name="last-updated" content="2026-10-17" />
@@ -19,7 +19,7 @@
 <meta name="root-commit-files" content="37" />
 <meta name="gate-result" content="PASS" />
 <meta name="acceptance" content="open: 0/17 Track A checks run, Track B never run, G1-G6 unsettled" />
-<meta name="security-open" content="GitHub PAT in .git/config, not committed; revoke per 4.1" />
+<meta name="security-open" content="PAT no longer in .git/config (401 - likely revoked, confirm at settings/tokens); remote is SSH with no key, so pushing is blocked - see 4.2" />
 <style>
   body { font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; max-width: 64rem;
     margin: 0 auto; padding: 1.5rem 1.4rem 3rem; color: #1a1a1a; background: #fdfdfc; }
@@ -71,7 +71,7 @@
   is recorded; 0 of 17 Track A checks have run.</p>
 
   <dl class="facts">
-    <dt>Document</dt><dd>3.0 · compacted · living · append-only (rules <a href="#maintenance">§5</a>)</dd>
+    <dt>Document</dt><dd>3.1 · compacted · living · append-only (rules <a href="#maintenance">§5</a>)</dd>
     <dt>As of</dt><dd><time datetime="2026-10-17">2026-10-17</time>, end of session 1</dd>
     <dt>Project</dt><dd>CursedGems <code>0.1.0-phase1</code> ·
       <code>github.com/wiwiwi25/AI_sandbox</code> @ <code>main</code></dd>
@@ -121,7 +121,8 @@
     <li><strong>Stale text left visible:</strong> "~2,500 lines" in <code>.cursorignore</code> and the
     <code>.gitignore</code> header; measured <strong>5,775</strong> (<a href="#handoff">§4.7</a>).</li>
     <li><span class="todo">Open:</span> playtest, Track B, G1–G6, tag, LICENSE, CI, behavioural tests.
-    <strong>First action: revoke the PAT</strong> (<a href="#handoff">§4.1</a>).</li>
+    <strong>First action: restore a working push path</strong> — the remote is SSH with no key, so
+    nothing can be published from this machine (<a href="#handoff">§4.2</a>).</li>
   </ul>
 </section>
 <section id="technical-context">
@@ -132,9 +133,10 @@
     repository, the repository wins: re-measure, then refresh. Every value has a command in
     <code>verify</code>.</p>
     <pre><code>{
-  "doc":{"v":"3.0","kind":"append-only log","updated":"2026-10-17"},
+  "doc":{"v":"3.1","kind":"append-only log","updated":"2026-10-17"},
   "repo":{"remote":"github.com/wiwiwi25/AI_sandbox","branch":"main","root":"df56a1c","files_root":37,
-          "files_now":38,"tree":"clean","ahead":0,"commit_total":"not cited - self-invalidating"},
+          "files_now":38,"tree":"clean","ahead":0,"commit_total":"not cited - self-invalidating",
+          "protocol":"ssh git@","push":"blocked: no key on this machine - 4.2"},
   "src":{"luau":26,"lines":5775,"code":4627,"comment":414,"blank":734},
   "excluded":{"tools/*":"64.0 MB, 14 files; tools/README.md stays","build/":"0.2 MB, 3 files",
               "sourcemap.json":"regenerated every gate","*.rbxl|*.rbxlx|*.lock":"backstop",
@@ -162,8 +164,9 @@
             "tools":"Get-ChildItem tools -Recurse -File | Measure-Object Length -Sum",
             "place":"(Select-String '&lt;Item class=' build/CursedGems.rbxlx).Count",
             "gate":".\\check.ps1"},
-  "next":["revoke PAT (4.1)","17 Track A checks","Track B session","G5/G6 numbers","README link",
-          "LICENSE","fetch-tools.ps1","fix ~2,500-line comments","behavioural tests"]
+  "next":["push path: key or HTTPS (4.2)","confirm PAT revoked (4.1)","17 Track A checks",
+          "Track B session","G5/G6 numbers","README link","LICENSE","fetch-tools.ps1",
+          "fix ~2,500-line comments","behavioural tests"]
 }</code></pre>
     <p><strong>Verbatim proofs.</strong> Line endings: <code>* text=auto eol=lf</code> in
     <code>.gitattributes</code>, with <code>*.rbxl</code>, <code>*.rbxlx</code>, <code>*.rbxm</code> and
@@ -352,34 +355,62 @@
   <p class="stamp">Disposable by design: it describes what the <em>next</em> session should do and is
   replaced wholesale. Ordered by cost-of-late, so a security item is first and tidy-ups are last.</p>
 
-  <h3 id="credential">4.1 Revoke the PAT in <code>.git/config</code> <span class="todo">do first</span></h3>
+  <h3 id="credential">4.1 The token is out of <code>.git/config</code> <span class="pass">done</span></h3>
   <ul class="tight">
-    <li><code>.git/config</code> stores <code>origin</code> as
-    <code>https://&lt;token&gt;@github.com/wiwiwi25/AI_sandbox.git</code> — a GitHub personal access
-    token in plaintext. <strong>The value is deliberately not reproduced here.</strong></li>
-    <li><strong>Not in any commit:</strong> <code>.git/</code> is never in the tree;
+    <li><strong>Measured:</strong> <code>remote.origin.url</code> is
+    <code>git@github.com:wiwiwi25/AI_sandbox.git</code> and no token literal exists in
+    <code>.git/config</code> — the credential-bearing HTTPS URL that 2.x described is gone.</li>
+    <li><strong>It does not authenticate either:</strong> <code>HTTP/1.1 401 Unauthorized</code> on
+    <code>git-receive-pack</code>. Consistent with revocation, but not proof — a deleted token and a live
+    read-only token fail identically. <strong>Confirm at
+    <code>github.com/settings/tokens</code></strong>, delete anything unused.</li>
+    <li><strong>Removing the URL was hygiene; the copy on disk was the exposure</strong> — anything that
+    could read the file, including anything that echoed the remote. A token written to disk should be
+    assumed read.</li>
+    <li><strong>Never committed:</strong> <code>.git/</code> is outside the tree;
     <code>git grep -nE 'ghp_[A-Za-z0-9]{20,}'</code> returns nothing.</li>
-    <li><strong>Who can see it:</strong> anything on this machine that can read the file — editors,
-    scripts, agents, terminals that echo the URL. A token written to disk should be assumed read.</li>
-    <li><strong>Revoking is the fix</strong>; rewriting the URL is hygiene, not remediation.</li>
   </ul>
-  <pre><code># 1. revoke at github.com/settings/tokens, then:
-git remote set-url origin https://github.com/wiwiwi25/AI_sandbox.git
-git remote -v   # both lines must be credential-free</code></pre>
-  <p class="stamp">Pushes keep working afterwards: <code>credential.helper=manager</code> is set at
-  <strong>system</strong> scope (<code>global</code> and <code>local</code> are unset).</p>
 
-  <h3 id="publication">4.2 Publication state</h3>
+  <h3 id="publication">4.2 Publication state <span class="todo">push is blocked</span></h3>
   <ul class="tight">
-    <li><strong>Published.</strong> <code>origin/main</code> = <code>HEAD</code>,
-    <code>ahead 0</code> — after four attempts; three stalled at the receive-pack handshake, the fourth
-    finished in seconds once two stale <code>git</code> processes died (1.5, 1.6).</li>
-    <li><strong>A file cannot cite its own commit hash.</strong> The subject is the identifier:
-    <code>git log --grep='living Phase 1 summary log'</code>.</li>
-    <li><strong>Never force-push <code>main</code>.</strong> The root commit is the only copy of a 37-file
-    history. If a push is rejected, <code>git pull --rebase origin main</code> then push. If it hangs
-    while <code>ls-remote</code> works, check <code>Get-Process git</code> first.</li>
+    <li><strong>Published and verified:</strong> <code>01bceb1</code> is <code>origin/main</code> —
+    checked with <code>git ls-remote &lt;https-url&gt; refs/heads/main</code>, not inferred from
+    <code>ahead 0</code>.</li>
+    <li><strong>The remote moved to SSH</strong> — <code>git@github.com:…</code>, fetch and push — and it
+    cannot authenticate here: no <code>~/.ssh</code> key, no agent, and
+    <code>ssh -T git@github.com</code> answers <code>Permission denied (publickey)</code>. An empty
+    <code>known_hosts</code> blocks even earlier, on a host-key question that never reaches the
+    terminal.</li>
+    <li><strong>The silent hang is SSH, not the credential helper.</strong> No
+    <code>GitCredentialManager</code> process runs during a push, and SSH writes nothing to stdout, so a
+    stalled push looks exactly like a slow network. Check <code>Get-Process git</code> for stale
+    processes before blaming either — seven were alive at once this session.</li>
+    <li><strong>The old token is dead</strong> — <code>HTTP/1.1 401 Unauthorized</code>, twice — so
+    <code>-c credential.helper=</code> cannot help: it removes the only thing that could answer, and git
+    then waits on a <code>Username:</code> prompt nobody can see. Clearing the helper makes pushing
+    worse, not cleaner.</li>
+    <li><strong>HTTPS + GCM is the path that works.</strong> <code>credential.helper=manager</code> at
+    system scope authenticated non-interactively while 3.1 was published; a one-shot
+    <code>pushurl</code> leaves <code>remote.origin.url</code> alone and still advances
+    <code>origin/main</code>.</li>
+    <li><strong>Never amend, never force-push.</strong> <code>df56a1c</code>, <code>8d9ebaf</code> and
+    <code>01bceb1</code> are public; a rejected push is rebased, not overwritten. A file cannot cite its
+    own hash — find it by subject with <code>git log --grep</code>.</li>
   </ul>
+  <details>
+    <summary>Three ways to restore pushing, and one flag to stop it hanging</summary>
+    <pre><code># A. publish now without touching .git/config; origin/main stays accurate
+git -c remote.origin.pushurl=https://github.com/wiwiwi25/AI_sandbox.git push origin main
+
+# B. or make HTTPS the remote — GCM then prompts once, in a visible window
+git remote set-url origin https://github.com/wiwiwi25/AI_sandbox.git
+
+# C. or make SSH work: create a key, register it, verify; the remote needs no change
+ssh-keygen -t ed25519; ssh -T git@github.com
+
+# fail fast instead of hanging, for any of the three
+$env:GIT_SSH_COMMAND='ssh -o BatchMode=yes -o ConnectTimeout=10'; $env:GIT_TERMINAL_PROMPT='0'</code></pre>
+  </details>
   <details>
     <summary>The runbook — Studio boot (4.3), Track A (4.4), Track B (4.5), G5/G6 (4.6)</summary>
 
@@ -545,6 +576,14 @@ Select-String docs\phase1_summary.html -Pattern '__[A-Z]+__'
           dump removed; a stale <code>Color3</code> count in 1.2 dropped. Every number and marker
           re-checked — the full prose is preserved in git history at <code>4e6eda2</code>.</td>
           <td><code>docs: compact Phase 1 summary for token efficiency</code></td></tr>
+      <tr><td>3.1</td><td><time datetime="2026-10-17">2026-10-17</time></td>
+          <td><strong>§4.2 rewritten to measured fact.</strong> It said "published, ahead 0" and stopped
+          there — true and useless: <code>01bceb1</code> is now verified by <code>ls-remote</code>, with
+          the SSH remote that has no key, the <code>401</code> that makes
+          <code>-c credential.helper=</code> hang, and three ways to restore pushing. §4.1 demoted to
+          <em>done</em>: the token is out of <code>.git/config</code>. Numbered 3.1, not 2.2 — that row
+          already exists and this table is append-only and ascending.</td>
+          <td><code>docs: rewrite 4.2, append revision 3.1, bump version</code></td></tr>
       <!--@ NEXT REVISION ROW -->
     </tbody>
   </table>
@@ -569,7 +608,7 @@ Select-String docs\phase1_summary.html -Pattern '__[A-Z]+__'
   <p><strong>Related:</strong> <a href="PHASE1_ARCHITECTURE.md">PHASE1_ARCHITECTURE.md</a> ·
   <a href="PHASE1_DESIGN.md">PHASE1_DESIGN.md</a> ·
   <a href="PHASE1_PLAYTEST.md">PHASE1_PLAYTEST.md</a> · <a href="../README.md">README.md</a></p>
-  <p>Version 3.0 · <time datetime="2026-10-17">2026-10-17</time> · §3 and §5 append-only · validated with
+  <p>Version 3.1 · <time datetime="2026-10-17">2026-10-17</time> · §3 and §5 append-only · validated with
   §5.2 · committed to <code>main</code>.</p>
 </footer>
 
