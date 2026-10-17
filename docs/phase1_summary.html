@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CursedGems — Phase 1 completion report</title>
+<meta name="project" content="CursedGems" />
+<meta name="phase" content="1" />
+<meta name="version" content="0.1.0-phase1" />
+<meta name="report-date" content="2026-10-17" />
+<meta name="branch" content="main" />
+<meta name="commit" content="df56a1c95768ef84f41d06dd6d0fe3394f2895d8" />
+<meta name="commit-subject" content="CursedGems — Phase 1: code-complete, playtest-pending" />
+<meta name="tracked-files" content="37" />
+<meta name="gate-result" content="PASS" />
+<meta name="repository-state" content="root commit published; origin/main in sync with main" />
+<meta name="audience" content="humans first; structured for AI context parsing second" />
+<meta name="sources-of-truth" content="docs/PHASE1_ARCHITECTURE.md, docs/PHASE1_DESIGN.md, docs/PHASE1_PLAYTEST.md, README.md" />
+<style>
+  body {
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+    max-width: 62rem; margin: 0 auto; padding: 2rem 1.5rem 4rem;
+    color: #1a1a1a; background: #fdfdfc;
+  }
+  h1 { font-size: 1.9rem; margin: 0 0 .4rem; }
+  h2 { font-size: 1.35rem; margin: 2.4rem 0 .6rem; padding-top: .6rem; border-top: 1px solid #e2e2de; }
+  h3 { font-size: 1.08rem; margin: 1.5rem 0 .4rem; }
+  header { border-bottom: 3px solid #1a1a1a; padding-bottom: 1.2rem; margin-bottom: 1rem; }
+  .lede { font-size: 1.06rem; color: #333; margin: .2rem 0 1rem; }
+  code, pre, kbd { font-family: ui-monospace, Consolas, "Cascadia Mono", monospace; }
+  code { background: #f1f1ee; padding: .1rem .3rem; border-radius: 3px; font-size: .9em; }
+  pre {
+    background: #f6f6f4; border: 1px solid #e2e2de; border-left: 4px solid #8a8a80;
+    padding: .7rem .9rem; overflow-x: auto; font-size: .85rem; line-height: 1.45;
+    border-radius: 0 4px 4px 0;
+  }
+  pre code { background: none; padding: 0; font-size: 1em; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+  th, td { border: 1px solid #e2e2de; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+  th { background: #f1f1ee; }
+  dl.facts { display: grid; grid-template-columns: 9rem 1fr; gap: .15rem .8rem; margin: 1rem 0 0; font-size: .92rem; }
+  dl.facts dt { font-weight: 600; color: #4a4a44; }
+  dl.facts dd { margin: 0; }
+  details { border: 1px solid #e2e2de; border-radius: 6px; padding: .6rem .9rem; margin: .7rem 0; background: #fff; }
+  details details { background: #fcfcfa; }
+  summary { cursor: pointer; font-weight: 600; }
+  summary code { font-weight: 400; }
+  nav ol { padding-left: 1.2rem; }
+  .pass { background: #e3f3e3; color: #10571a; border: 1px solid #9ccf9c; padding: .1rem .4rem; border-radius: 4px; font-weight: 600; }
+  .fail { background: #fbe4e4; color: #7a1414; border: 1px solid #e0a1a1; padding: .1rem .4rem; border-radius: 4px; font-weight: 600; }
+  .todo { background: #fdf3d8; color: #6b4d00; border: 1px solid #e6cf8f; padding: .1rem .4rem; border-radius: 4px; font-weight: 600; }
+  ul.checklist { list-style: none; padding-left: 0; }
+  ul.checklist li { margin: .3rem 0; }
+  ul.checklist code:first-child { background: none; padding: 0; }
+  .note { border-left: 4px solid #b8892b; background: #fdf8ea; padding: .6rem .9rem; margin: 1rem 0; border-radius: 0 4px 4px 0; }
+  footer { margin-top: 3rem; border-top: 1px solid #e2e2de; padding-top: 1rem; font-size: .88rem; color: #555; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CursedGems — Phase 1 completion report</h1>
+  <p class="lede">The Phase 1 build is code-complete, gated, documented, and now version-controlled and
+  published. What is left is not code: it is the acceptance playtest.</p>
+  <dl class="facts">
+    <dt>Version</dt><dd><code>0.1.0-phase1</code> (<code>Config.VERSION</code>)</dd>
+    <dt>Branch</dt><dd><code>main</code> — single root commit, no fabricated history</dd>
+    <dt>Commit</dt><dd><code>df56a1c</code> (<code>df56a1c95768ef84f41d06dd6d0fe3394f2895d8</code>), 2026-10-17 03:04:17 +0200</dd>
+    <dt>Repository</dt><dd><code>github.com/wiwiwi25/AI_sandbox</code> — <code>main</code> in sync with <code>origin/main</code></dd>
+    <dt>Gate</dt><dd><span class="pass">gate: PASS</span> 26 files compile, 0 analyzer diagnostics</dd>
+    <dt>Author</dt><dd><code>wiwiwi25</code> &lt;<code>209310038+wiwiwi25@users.noreply.github.com</code>&gt; (repo-local only)</dd>
+    <dt>Report date</dt><dd>2026-10-17</dd>
+  </dl>
+  <nav aria-label="Contents">
+    <ol>
+      <li><a href="#executive-summary">Executive summary</a> — for humans</li>
+      <li><a href="#technical-context">Technical context and state</a> — for AI context parsing</li>
+      <li><a href="#action-log">Detailed action log</a> — what changed and why</li>
+      <li><a href="#handoff">Handoff and next steps</a> — the checklist for the next session</li>
+    </ol>
+  </nav>
+</header>
+
+<main>
+<section id="executive-summary">
+  <h2>1. Executive summary</h2>
+  <p>Phase 1 of CursedGems is <strong>code-complete</strong>: 26 Luau modules behind a single-command
+  offline gate, plus three documents recording what exists, why the numbers are what they are, and how
+  the build will be judged. Until this session it lived as an un-versioned folder on one machine, with
+  no history, no remote, and no reproducibility contract.</p>
+  <p>It is now a Git repository with one honest root commit on <code>main</code>, published to GitHub,
+  and a tree that somebody else can clone and verify. No gameplay code changed and no history was
+  fabricated: <strong>this session was about making an existing body of work reproducible and legible,
+  not about adding to it.</strong></p>
+
+  <h3>What is actually different now</h3>
+  <table>
+    <thead>
+      <tr><th>Area</th><th>Before</th><th>After</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Version control</td>
+        <td>No repository; edits were unrecoverable and unsendable</td>
+        <td><code>main</code>, root commit <code>df56a1c</code> — 37 files, 7,616 insertions — pushed to GitHub</td>
+      </tr>
+      <tr>
+        <td>Commit identity</td>
+        <td>No Git identity configured anywhere on the machine</td>
+        <td>Repo-local alias plus a GitHub noreply address, so no personal email is in the history and the machine-wide config is untouched</td>
+      </tr>
+      <tr>
+        <td>Line endings</td>
+        <td>Inherited <code>core.autocrlf=true</code>; a fresh Windows clone would have failed the formatting step of the gate on files nobody edited</td>
+        <td><code>.gitattributes</code> pins LF; all 37 index entries verified <code>i/lf</code></td>
+      </tr>
+      <tr>
+        <td>Repository weight</td>
+        <td>64 MB of third-party tooling and generated build output sat inside the project folder</td>
+        <td><code>tools/</code> and <code>build/</code> excluded, with one tracked <code>tools/README.md</code> recording exactly what a clone must fetch</td>
+      </tr>
+      <tr>
+        <td>Documentation accuracy</td>
+        <td>Claimed the tooling was "vendored, so a fresh clone needs no downloads"; described the Rojo trap as touching 38 services</td>
+        <td>Both corrected against measurement: the real ~64 MB trade is stated, and the trap is described as it is — 5 declared services, 35 items, with the proof lines quoted</td>
+      </tr>
+      <tr>
+        <td>Coverage of the known risk</td>
+        <td>16 Track A checks; the chat path was covered by nothing</td>
+        <td><strong>A17</strong> added — chat depends on a project-file property that no Luau-level check can see</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>The one thing worth noticing</h3>
+  <p>Two of this session's findings were not code bugs, and the gate could never have caught them,
+  because they live in the project file rather than in <code>src/</code>:
+  <code>Players.CharacterAutoLoads</code> and <code>TextChatService.ChatVersion</code> were silently
+  arriving at the Roblox API dump's defaults (<code>true</code> and <code>LegacyChatService</code>),
+  which contradict this design. Both are now declared explicitly, both are documented, and both have a
+  named check. The generalisable lesson — <em>a property nobody wrote down is still a decision</em> —
+  is what section 5 of the architecture document now records.</p>
+
+  <p><strong>Status of the acceptance work: unchanged, and stated as open in every document.</strong>
+  The playtest has not been run, so every economy value remains a <code>[SIM]</code> assumption rather
+  than a measurement.</p>
+</section>
+
+<section id="technical-context">
+  <h2>2. Technical context and state</h2>
+  <p>Everything in this section was produced by a command run against the repository as it stands, not
+  from memory. Each block names the command that produces it, so any claim here can be re-derived.</p>
+
+  <h3>2.1 Repository state</h3>
+  <p>Every count below describes commit <code>df56a1c</code> — the 37-file root commit that was
+  published. This report is a later commit on <code>main</code> and is therefore not one of the 37; the
+  manifest in §2.6 is the root commit's on purpose, so that the numbers and the artifact they describe
+  stay in the same frame.</p>
+  <table>
+    <thead>
+      <tr><th>Key</th><th>Value</th><th>Source</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Branch</td><td><code>main</code>, created with <code>git init -b main</code> — this overrides the machine's inherited <code>init.defaultbranch=master</code></td><td><code>git branch --show-current</code></td></tr>
+      <tr><td>Commit</td><td><code>df56a1c95768ef84f41d06dd6d0fe3394f2895d8</code> — "CursedGems — Phase 1: code-complete, playtest-pending"</td><td><code>git rev-parse HEAD</code></td></tr>
+      <tr><td>Commits</td><td>1 root commit; no rewritten or fabricated history</td><td><code>git rev-list --count HEAD</code></td></tr>
+      <tr><td>Commit date</td><td>2026-10-17 03:04:17 +0200</td><td><code>git log -1 --format=%ad</code></td></tr>
+      <tr><td>Size</td><td>37 files, 7,616 insertions</td><td><code>git show --stat HEAD</code></td></tr>
+      <tr><td>Author / committer</td><td><code>wiwiwi25 &lt;209310038+wiwiwi25@users.noreply.github.com&gt;</code>, set with <code>--local</code> only</td><td><code>git config --local --list</code></td></tr>
+      <tr><td>Remote</td><td><code>origin</code> — <code>github.com/wiwiwi25/AI_sandbox</code>; local <code>main</code> is identical to <code>origin/main</code> (ahead 0, behind 0)</td><td><code>git rev-parse origin/main</code>, <code>git rev-list --count origin/main..HEAD</code></td></tr>
+      <tr><td>Working tree</td><td>Clean at commit time — nothing unstaged, nothing untracked</td><td><code>git status --porcelain</code></td></tr>
+      <tr><td>Line endings in the index</td><td>37 of 37 files <code>i/lf</code>; zero <code>i/crlf</code></td><td><code>git ls-files --eol</code></td></tr>
+      <tr><td>Source files</td><td>26 <code>.luau</code> — 8 shared, 10 server, 8 client</td><td><code>Get-ChildItem src -Recurse -Filter *.luau</code></td></tr>
+      <tr><td>Documents</td><td><code>PHASE1_ARCHITECTURE.md</code>, <code>PHASE1_DESIGN.md</code>, <code>PHASE1_PLAYTEST.md</code>, plus this report</td><td>directory listing</td></tr>
+    </tbody>
+  </table>
+  <h3>2.2 Exclusion rules applied to <code>tools/</code> and <code>build/</code></h3>
+  <p>Two dotfiles carry the repository contract. <code>.gitignore</code> decides what is versioned; it
+  is a superset of the pre-existing <code>.cursorignore</code>, which already kept the same paths out of
+  the editor's context.</p>
+  <details open="open">
+    <summary><code>.gitignore</code> — what is not this project (1,436 bytes, verbatim)</summary>
+<pre><code># ============================================================================
+#  CursedGems :: what is not this project
+# ============================================================================
+#  Mirrors .cursorignore, which already keeps these paths out of the editor's
+#  context: everything below is either a third-party download or a file one of
+#  the tools regenerates, so a fresh clone is the ~2,500 lines of project code
+#  and nothing else.
+#
+#  Note what is deliberately absent: *.rbxm / *.rbxmx. Models are the first
+#  assets this repository will actually own (docs/PHASE1_DESIGN.md section 8),
+#  so they must stay committable. The single .rbxm in the tree is the Rojo
+#  Studio plugin, and `tools/*` below already covers it.
+# ============================================================================
+
+# Vendored toolchain: four executables, globalTypes.d.luau, the four release
+# zips and the Rojo Studio plugin (~64 MB in total). tools/README.md lists what
+# the gate needs and where each file comes from.
+tools/*
+!tools/README.md
+
+# Generated: the sourcemap the gate rebuilds every run, and build/ (the built
+# place, analyze.txt, and the lock file Studio drops beside an open place).
+sourcemap.json
+build/
+
+# A place file only ever appears here as build output; these patterns are a
+# backstop for a rebuild aimed at the repository root instead of build/.
+*.rbxl
+*.rbxlx
+*.lock</code></pre>
+  </details>
+  <p>The net effect, measured: <strong>37 tracked files</strong>, and nothing in the history that Git
+  LFS or a shallow clone would need to think about.</p>
+  <table>
+    <thead>
+      <tr><th>Rule</th><th>What it keeps out</th><th>Measured</th><th>Why</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>tools/*</code><br />with <code>!tools/README.md</code></td>
+        <td>13 files: <code>stylua.exe</code>, <code>rojo.exe</code>, <code>luau-compile.exe</code>, <code>luau-lsp.exe</code>, the four release zips, the extra Luau CLI binaries, the Rojo Studio plugin <code>Rojo.rbxm</code> (564 KB), and <code>globalTypes.d.luau</code> (868,857 bytes, 848.5 KB)</td>
+        <td><strong>64.0 MB</strong></td>
+        <td>Third-party downloads, not source. Only <code>tools/README.md</code> is tracked, because a clone has to be told what to fetch and where from — that one file is the whole reason the exclusion is safe</td>
+      </tr>
+      <tr>
+        <td><code>build/</code></td>
+        <td><code>CursedGems.rbxlx</code> (192,848 bytes), <code>analyze.txt</code> (185 bytes), <code>CursedGems.rbxlx.lock</code> (77 bytes)</td>
+        <td>193 KB</td>
+        <td>Produced by <code>rojo build</code> and by the gate; the <code>.lock</code> exists only while Studio holds the place open</td>
+      </tr>
+      <tr>
+        <td><code>sourcemap.json</code></td>
+        <td>The file tree the Luau tooling reads</td>
+        <td>generated</td>
+        <td>Rebuilt by step 2 of the gate on every run. A stale one makes the analyzer silently blind to new modules, which is exactly the failure a committed copy would hide</td>
+      </tr>
+      <tr>
+        <td><code>*.rbxl</code>, <code>*.rbxlx</code>, <code>*.lock</code></td>
+        <td>Place files and Studio lock files</td>
+        <td>—</td>
+        <td>Backstop in case a future rebuild targets the repository root instead of <code>build/</code></td>
+      </tr>
+      <tr>
+        <td><em>deliberately not ignored:</em> <code>*.rbxm</code>, <code>*.rbxmx</code></td>
+        <td>Models</td>
+        <td>—</td>
+        <td>Models are the first assets this project will own (DESIGN section 8), so they must stay committable. The one <code>.rbxm</code> in the tree today is a tool, and <code>tools/*</code> already covers it</td>
+      </tr>
+    </tbody>
+  </table>
+  <h3>2.3 CRLF / LF enforcement</h3>
+  <p>The machine's Git was configured with <code>core.autocrlf=true</code>, inherited from the
+  environment. That is the one setting that could quietly break the repository for a fresh clone: the
+  pre-existing <code>.md</code> and <code>.ps1</code> files sat on disk as CRLF, and a clone that
+  re-materialised them differently would fail the gate on files nobody had edited.</p>
+  <details open="open">
+    <summary><code>.gitattributes</code> — line endings and binary files (897 bytes, verbatim)</summary>
+<pre><code># ============================================================================
+#  CursedGems :: line endings and binary files
+# ============================================================================
+#  The gate runs `stylua --check`, and .stylua.toml pins line_endings = "Unix".
+#  Git for Windows installs with core.autocrlf=true, which would check these
+#  sources out as CRLF and fail step 1 of check.ps1 on a fresh clone. Pin LF in
+#  the index *and* the working tree so a clone is byte-identical to this one.
+#
+#  The project is developed on Windows but the files are Unix-convention; that
+#  is why this is forced rather than left to `text=auto` alone.
+# ============================================================================
+
+* text=auto eol=lf
+
+# Never let Git "normalise" a place file or a model.
+*.rbxl  binary
+*.rbxlx binary
+*.rbxm  binary
+*.rbxmx binary</code></pre>
+  </details>
+  <p>Two rules and a comment block, but they do different jobs. <code>* text=auto eol=lf</code> forces
+  LF into both the index and the working tree, overriding the local
+  <code>core.autocrlf=true</code>. The four <code>binary</code> lines are the counterpart on the way
+  back in: place files and models are never line-ending-converted, so a model committed later is stored
+  byte-for-byte and not subtly corrupted by a CRLF pass.</p>
+  <h4>What that produced, measured with <code>git ls-files --eol</code></h4>
+  <table>
+    <thead>
+      <tr><th>Measurement</th><th>Result</th><th>Meaning</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Index line endings</td><td><code>i/lf</code>: <strong>37</strong> files; <code>i/crlf</code>: 0</td><td>Every blob in the commit is LF — this is what a clone receives, so it is the number that matters</td></tr>
+      <tr><td>Working-tree line endings, today</td><td><code>w/lf</code>: 28 files; <code>w/crlf</code>: 9 files</td><td>The 9 are files written before <code>.gitattributes</code> existed: <code>.cursorignore</code>, <code>.gitattributes</code>, <code>.gitignore</code>, <code>README.md</code>, <code>check.ps1</code>, the three <code>docs/PHASE1_*.md</code>, and <code>tools/README.md</code></td></tr>
+      <tr><td><code>src/**</code> on disk</td><td>26 of 26 <code>w/lf</code></td><td>Why the gate passes <em>today</em>: stylua reads the working tree, and no Luau file has a CR</td></tr>
+      <tr><td>Effect on <code>git status</code></td><td>Clean</td><td>The clean filter strips CR before comparing against the index, so a CRLF copy on disk is not reported as modified — the discrepancy is real but invisible, and harmless in both directions</td></tr>
+    </tbody>
+  </table>
+  <p>Net effect: a fresh clone on any platform checks out 37 LF files, so step 1 of the gate behaves the
+  same for the next contributor as it does here. The one thing this session did <em>not</em> do is
+  re-write the nine local files to LF — they are already normalised in the index, and rewriting them
+  would have been a gratuitous diff.</p>
+  <h3>2.4 The gate, as it stands</h3>
+  <p>One command, no network, no Studio. Output captured on 2026-10-17, re-run while writing this
+  report (it regenerates <code>sourcemap.json</code> and leaves the tracked tree clean):</p>
+<pre><code>[1/4] stylua       : clean
+[2/4] rojo         : sourcemap.json regenerated
+[3/4] luau-compile : 26 files compile
+[4/4] luau-lsp     : 0 diagnostics
+
+gate: PASS</code></pre>
+  <p>The pass condition is the last line: zero analyzer diagnostics. The first three steps exist to make
+  the fourth meaningful — formatting, because a diff should be semantic; the sourcemap, because the
+  analyzer needs to know the tree; and compilation, because a syntax error should be reported as a
+  syntax error rather than as whatever the analyzer makes of it.</p>
+  <p><strong>Caveat a clone inherits:</strong> the four steps call the toolchain in <code>tools/</code>,
+  and <code>tools/</code> is not in the repository (section 2.2). A fresh clone must fetch the four
+  executables plus <code>globalTypes.d.luau</code> — the list and the sources are in
+  <code>tools/README.md</code> — before the gate will run at all.</p>
+  <h3>2.5 Machine-readable state</h3>
+  <p>For future parsing: the same facts as section 2.1, 2.2, 2.3 and 2.4 in one block.</p>
+  <details open="open">
+    <summary>Repository state as JSON</summary>
+<pre><code>{
+  "project": "CursedGems",
+  "phase": 1,
+  "version": "0.1.0-phase1",
+  "report_date": "2026-10-17",
+  "repository": {
+    "remote": "https://github.com/wiwiwi25/AI_sandbox.git",
+    "branch": "main",
+    "commits": 1,
+    "head": "df56a1c95768ef84f41d06dd6d0fe3394f2895d8",
+    "head_short": "df56a1c",
+    "head_subject": "CursedGems — Phase 1: code-complete, playtest-pending",
+    "committed_at": "2026-10-17T03:04:17+02:00",
+    "author_name": "wiwiwi25",
+    "author_email": "209310038+wiwiwi25@users.noreply.github.com",
+    "identity_scope": "repo-local",
+    "origin_main_in_sync": true,
+    "tracked_files": 37,
+    "insertions": 7616,
+    "worktree_clean": true
+  },
+  "line_endings": {
+    "rule": "* text=auto eol=lf",
+    "overrides": "core.autocrlf=true",
+    "index_lf": 37,
+    "index_crlf": 0,
+    "worktree_lf": 28,
+    "worktree_crlf": 9
+  },
+  "exclusions": {
+    "tools": { "ignored_files": 13, "size_mb": 64.0, "tracked_exception": "tools/README.md" },
+    "build": { "ignored_files": 3, "size_bytes": 193110 },
+    "sourcemap.json": { "generated_each_gate_run": true },
+    "deliberately_not_ignored": ["*.rbxm", "*.rbxmx"]
+  },
+  "gate": {
+    "command": ".\\check.ps1",
+    "result": "PASS",
+    "compiled_files": 26,
+    "diagnostics": 0,
+    "network_required": false
+  },
+  "source": { "luau_files": 26, "shared": 8, "server": 10, "client": 8 },
+  "open_work": [
+    "acceptance playtest not run",
+    "all 17 Track A checks have no recorded result",
+    "economy values remain [SIM] assumptions",
+    "toolchain is not in the repository; a clone must fetch it first"
+  ],
+  "security_followup": "the origin URL in .git/config embedded a personal access token; it is not tracked by Git, but it must be revoked and the remote rewritten"
+}</code></pre>
+  </details>
+
+  <h3>2.6 The 37 tracked files, as committed</h3>
+  <p>Output of <code>git ls-tree -r HEAD --name-only</code>. This is the complete file manifest of
+  commit <code>df56a1c</code> — everything not listed here is excluded by section 2.2.</p>
+  <details>
+    <summary>Show the manifest</summary>
+<pre><code>.cursorignore
+.gitattributes
+.gitignore
+.stylua.toml
+README.md
+check.ps1
+default.project.json
+docs/PHASE1_ARCHITECTURE.md
+docs/PHASE1_DESIGN.md
+docs/PHASE1_PLAYTEST.md
+src/client/ClientState.luau
+src/client/CollectionPanel.luau
+src/client/EffectFx.luau
+src/client/Hud.luau
+src/client/Imports.luau
+src/client/Main.client.luau
+src/client/SpinFx.luau
+src/client/Theme.luau
+src/server/CurseSystem.luau
+src/server/DataStoreLite.luau
+src/server/FollowerSystem.luau
+src/server/GemSystem.luau
+src/server/Imports.luau
+src/server/Main.server.luau
+src/server/PlayerDataService.luau
+src/server/StateSync.luau
+src/server/SummonSystem.luau
+src/server/WorldBuilder.luau
+src/shared/Config.luau
+src/shared/CreatureCatalog.luau
+src/shared/CreatureFactory.luau
+src/shared/GemCatalog.luau
+src/shared/Modules.luau
+src/shared/Pool.luau
+src/shared/Remotes.luau
+src/shared/Util.luau
+tools/README.md</code></pre>
+  </details>
+</section>
+
+<section id="action-log">
+  <h2>3. Detailed action log</h2>
+  <p>Chronological, with the command and the observed result for each item. Nothing below is a plan —
+  every step was executed and then checked.</p>
+
+  <h3>3.1 Initialising Git, staging 37 files, and a PII-safe identity</h3>
+  <details open="open">
+    <summary>What was run and what it produced</summary>
+
+    <p><strong>1. Repository created on the intended branch.</strong> The machine inherits
+    <code>init.defaultbranch=master</code>, so the branch was chosen explicitly instead of accepted by
+    default:</p>
+<pre><code>git init -b main
+# Initialized empty Git repository in E:/AI_sandbox/.git/</code></pre>
+
+    <p><strong>2. Identity set with <code>--local</code> only.</strong> There is no Git identity anywhere
+    on this machine (no user-level <code>.gitconfig</code> exists), and none was created — the identity
+    lives in <code>.git/config</code> inside this repository and nowhere else. The address is GitHub's
+    noreply form for the account, so no personal email address is stored in the history:</p>
+<pre><code>git config --local user.name  "wiwiwi25"
+git config --local user.email "209310038+wiwiwi25@users.noreply.github.com"</code></pre>
+
+    <p><strong>3. Four hygiene files written before the first stage.</strong> The first
+    <code>git add -A</code> printed <code>LF will be replaced by CRLF</code> warnings for the
+    pre-existing markdown and PowerShell files — inherited <code>core.autocrlf=true</code> at work. That
+    warning was the reason <code>.gitattributes</code> had to exist <em>before</em> the commit rather than
+    after it, otherwise the repository's first act would have been to encode line endings that break its
+    own gate on a fresh clone.</p>
+
+    <p><strong>4. One root commit, 37 files, nothing invented.</strong> 33 of the tracked files were
+    pre-existing work (two of them edited this session); four were written from scratch. The subject and
+    body record exactly that, including what is still open:</p>
+<pre><code>git show --stat --oneline HEAD
+# df56a1c CursedGems — Phase 1: code-complete, playtest-pending
+#  ...
+#  37 files changed, 7616 insertions(+)</code></pre>
+
+    <details>
+      <summary>The commit message, verbatim</summary>
+<pre><code>CursedGems — Phase 1: code-complete, playtest-pending
+
+The Phase 1 build in full: 26 Luau files (8 shared, 10 server, 8 client) that pass a
+one-command offline gate — stylua, rojo sourcemap, luau-compile, luau-lsp — plus the
+three documents that explain it: architecture for what exists, design for why the
+numbers are what they are, and playtest for how it gets tested.
+
+What is here:
+- src/                 26 modules; the server owns all state, the client sends no intent
+- check.ps1            the gate; zero analyzer diagnostics is the pass condition
+- default.project.json, .stylua.toml, .cursorignore
+- .gitattributes       pins LF so a fresh Windows clone passes step 1 of the gate
+- .gitignore           keeps tools/ (~64 MB) and build/ out of the repository
+- README.md            pitch, gate, build-and-play, fresh-clone caveat
+- tools/README.md      the one part of tools/ that is tracked: what a clone must fetch
+- docs/                PHASE1_ARCHITECTURE.md, PHASE1_DESIGN.md, PHASE1_PLAYTEST.md
+
+Two Studio-side defaults are now declared explicitly in default.project.json, both
+documented in section 5 of the architecture document: Players.CharacterAutoLoads (the
+API dump default is true, and this game loads a player state before the character
+exists, so the flag is false here) and TextChatService.ChatVersion (the dump default is
+LegacyChatService, i.e. no chat). Neither is visible anywhere in src/ — which is
+precisely why they are worth the paragraph.
+
+Still open, and stated as such in the docs: the acceptance playtest has not been run,
+so every economy value is a [SIM] assumption; Track A is 17 checks and none of them has
+a recorded result yet; there are no behavioural tests; and the toolchain is not in the
+repository — a clone must fetch four executables plus globalTypes.d.luau (see
+tools/README.md) before the gate will run.</code></pre>
+    </details>
+
+    <p><strong>5. Verified before publishing, not after.</strong> All four checks passed on the commit
+    itself, so the push could not publish a broken state:</p>
+<pre><code>git status --porcelain        # (no output — clean)
+git rev-list --count HEAD     # 1
+git ls-files --eol            # 37 x i/lf, 0 x i/crlf
+.\check.ps1                   # gate: PASS — 26 files compile, 0 diagnostics</code></pre>
+
+    <p><strong>6. Published, then confirmed.</strong> VS Code's Source Control publish added
+    <code>origin</code> and pushed <code>main</code>. Checked afterwards from the shell:
+    <code>git rev-parse origin/main</code> returns the same <code>df56a1c…</code> as <code>HEAD</code>,
+    with <code>rev-list --count</code> reporting ahead 0, behind 0.</p>
+  </details>
+  <h3>3.2 Correcting the Rojo-defaults trap — five services, not thirty-eight</h3>
+  <details open="open">
+    <summary>The finding, the evidence, and what changed in the documentation</summary>
+    <p><strong>The mechanism.</strong> Rojo does not only build the instance tree: every service the
+    project <em>declares</em> is serialized with the full property set read from the Roblox API dump. A
+    property the project never mentions is therefore written at the <em>dump's</em> default rather than
+    at Studio's new-place default — and Studio then applies whatever the file says. Two of those
+    defaults contradicted this design.</p>
+    <table>
+      <thead>
+        <tr><th>Property</th><th>API-dump default<br />(what the place used to receive)</th><th>What this design needs</th><th>What the default costs</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>Players.CharacterAutoLoads</code></td>
+          <td><code>true</code></td>
+          <td><code>false</code> — the game loads a player's state <em>before</em> the character exists</td>
+          <td>A character can spawn before the load path finishes, silently bypassing the state-first design; an exception inside the load leaves the player in an empty world</td>
+        </tr>
+        <tr>
+          <td><code>TextChatService.ChatVersion</code></td>
+          <td><code>LegacyChatService</code> (<code>0</code>)</td>
+          <td><code>TextChatService</code> (<code>1</code>)</td>
+          <td>No chat at all, with no error reported anywhere — the client simply has nothing to talk through</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p><strong>The framing correction.</strong> The trap had been described with a service count this
+    repository does not support. Measured against the built place it is <strong>five declared services
+    carrying 35 items in total</strong>: <code>Players</code>, <code>ReplicatedStorage</code>,
+    <code>ServerScriptService</code>, <code>StarterPlayer</code> and <code>TextChatService</code>.
+    Thirty-eight is a fair count of services in a <em>loaded DataModel</em>, which is a different subject;
+    the paragraph is about which services Rojo writes defaults into, and that is only what the project
+    declares.</p>
+
+    <h4>Evidence, taken from the built place rather than the project file</h4>
+<pre><code>&gt; Select-String -Path build\CursedGems.rbxlx -Pattern 'CharacterAutoLoads','ChatVersion'
+line    5: &lt;bool name="CharacterAutoLoads"&gt;false&lt;/bool&gt;
+line 5978: &lt;token name="ChatVersion"&gt;1&lt;/token&gt;
+
+&gt; (Select-String -Path build\CursedGems.rbxlx -Pattern '&lt;Item class=' -AllMatches).Matches.Count
+35
+
+&gt; services declared in default.project.json
+"$className": "Players"              (line  6)
+"$className": "ReplicatedStorage"    (line 11)
+"$className": "ServerScriptService"  (line 16)
+"$className": "TextChatService"      (line 21)
+"$className": "StarterPlayer"        (line 26)</code></pre>
+
+    <p>Both properties were already declared when this session started; what was wrong was the
+    <em>record</em> of why they are there. What changed:</p>
+    <ul>
+      <li>Architecture §5 now states the mechanism in full — "Rojo writes the API dump's defaults, not
+      just the tree" — names each property with its dump default and this design's value, and ends with
+      the operating rule: <em>if you change <code>default.project.json</code>, rebuild before you play,
+      because Studio plays the place, not the project.</em></li>
+      <li>The figures in that paragraph are now the measured ones, with the two proof lines quoted
+      verbatim, so a reader can check the claim against the artifact instead of trusting the prose.</li>
+      <li>Each property is cross-referenced to the check that proves it: <code>CharacterAutoLoads</code>
+      to <strong>A2</strong>, <code>ChatVersion</code> to <strong>A17</strong>.</li>
+    </ul>
+    <p>The reason this belongs in an action log at all: it was the one finding this session that could
+    not have come from the code, and the gate will never catch a regression of it. That is now written
+    down rather than remembered.</p>
+  </details>
+  <h3>3.3 Correcting the "vendored tools" claim in <code>PHASE1_ARCHITECTURE.md</code></h3>
+  <details open="open">
+    <summary>The wrong claim, the measured weight, and the paragraph that replaced it</summary>
+    <p><strong>What the document used to say:</strong> that the toolchain was vendored, so a fresh
+    clone needed no downloads. That framing made <code>tools/</code> sound like part of the repository
+    while the very first version-control decision was whether it should be. Publishing a repository whose
+    own architecture document misdescribes its contents is the kind of error that costs a future
+    contributor an afternoon.</p>
+    <p><strong>What was measured first, then written down:</strong></p>
+    <table>
+      <thead>
+        <tr><th>Item</th><th>Size</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>tools/</code> in total — 13 ignored files (7 executables, 4 release zips, <code>Rojo.rbxm</code>, <code>globalTypes.d.luau</code>)</td><td><strong>64.0 MB</strong></td></tr>
+        <tr><td><code>luau-lsp/luau-lsp.exe</code> — the analyzer</td><td>17,409 KB (17.0 MB)</td></tr>
+        <tr><td><code>rojo/rojo.exe</code> — the builder and sourcemap generator</td><td>14,887 KB (14.5 MB)</td></tr>
+        <tr><td><code>stylua/stylua.exe</code> — the formatter</td><td>8,845 KB (8.6 MB)</td></tr>
+        <tr><td>The four release zips (<code>luau-lsp</code>, <code>rojo</code>, <code>stylua</code>, <code>luau</code>)</td><td>5,233 / 4,465 / 2,877 / 3,130 KB</td></tr>
+        <tr><td><code>globalTypes.d.luau</code> — engine type definitions</td><td>848.5 KB (868,857 bytes)</td></tr>
+        <tr><td><code>Rojo.rbxm</code> — the Studio plugin</td><td>564 KB</td></tr>
+      </tbody>
+    </table>
+    <p>The measured figure is <strong>64.0 MB, against an earlier estimate of roughly 26 MB</strong>.
+    Being wrong by a factor of about 2.5 in the direction that flatters the decision is exactly why the
+    exclusion is now documented as a measurement rather than as a judgement call.</p>
+    <p><strong>What the document says now</strong> (architecture §2, lines 76–81): the tool binaries are
+    "deliberately <em>not</em> part of the repository: four third-party executables plus an 850 KB engine
+    type-definitions file, ~64 MB in total once the release zips and the Rojo Studio plugin are in there";
+    <code>tools/README.md</code> records the layout the gate expects and where each file comes from; a
+    fresh clone is <code>git clone</code> plus that one fetch; and until the fetch happens the gate stops
+    with <code>Missing toolchain component</code>. The trade-off is logged in §15 rather than left
+    implicit.</p>
+    <p>Three further edits followed from the same measurement:</p>
+    <ul>
+      <li>§5's tree gained the two new dotfiles and <code>tools/README.md</code>, so the printed layout
+      matches <code>git ls-tree</code> for the first time.</li>
+      <li>§5 gained the Rojo-defaults paragraph described in §3.2 above.</li>
+      <li>§15 (known gaps) gained a row: the toolchain is not in the repository, <code>git clone</code>
+      is not a working gate on its own yet, and a <code>fetch-tools.ps1</code> with version pins is the
+      obvious next step.</li>
+    </ul>
+  </details>
+  <h3>3.4 Adding the A17 chat check to <code>PHASE1_PLAYTEST.md</code></h3>
+  <details open="open">
+    <summary>Why chat had no check, and what the new row says</summary>
+    <p><strong>The gap.</strong> Track A had sixteen checks and not one of them exercised chat, even
+    though chat depends on a property that lives in the project file. That is the same failure class as
+    the <code>CharacterAutoLoads</code> mistake: invisible to <code>src/</code>, invisible to the gate,
+    and only visible when a human tries it.</p>
+    <p><strong>The row, as added</strong> — Track A now has seventeen checks:</p>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Do this</th><th>Expect</th><th>If it fails, look at</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>A17</td>
+          <td>Press <code>/</code> and send a chat message</td>
+          <td>The line appears when you press Enter, and <code>Chat</code> in the Explorer carries no orange warning badge. Silence here means <code>ChatVersion</code> is not <code>TextChatService</code> in the built place — rebuild after touching the project file</td>
+          <td><code>default.project.json</code> (<code>ChatVersion</code>), <a href="PHASE1_ARCHITECTURE.md#5-repository-layout">§5 of the architecture document</a></td>
+        </tr>
+      </tbody>
+    </table>
+    <p><strong>The count was updated with it.</strong> §4 of the playtest document now opens "Seventeen
+    checks, ~10 minutes, one player, unpublished Studio". It had said sixteen — and a stale count in the
+    document that defines the acceptance run is a quiet way to skip a check.</p>
+    <p><strong>The note under the table was extended</strong> so the two findings read as one pattern:
+    A17 "is the same failure class one level up" — nothing in <code>src/</code> decides whether chat
+    works, <code>ChatVersion</code> is a property Studio reads from the project file, and the gate is
+    blind to it for the reason it was blind to the <code>CharacterAutoLoads</code> mistake.</p>
+  </details>
+
+  <h3>3.5 The four hygiene files written before the first commit</h3>
+  <details open="open">
+    <summary>What was created from scratch, and what was deliberately left undone</summary>
+    <table>
+      <thead>
+        <tr><th>File</th><th>Size</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>.gitignore</code></td><td>1,436 bytes</td><td>Decides what is versioned: <code>tools/*</code> (except <code>tools/README.md</code>), <code>build/</code>, <code>sourcemap.json</code>, and place/lock files as a backstop — while leaving <code>*.rbxm</code>/<code>*.rbxmx</code> committable, because models are the first assets this project will own</td></tr>
+        <tr><td><code>.gitattributes</code></td><td>897 bytes</td><td>Pins LF in the index and the working tree, overriding the inherited <code>core.autocrlf=true</code>; marks <code>*.rbxl</code>/<code>*.rbxlx</code>/<code>*.rbxm</code>/<code>*.rbxmx</code> binary so models are never line-ending-converted</td></tr>
+        <tr><td><code>README.md</code></td><td>new</td><td>The tracked front door: the pitch, the gate and its output, how to build and play, and the fresh-clone caveat</td></tr>
+        <tr><td><code>tools/README.md</code></td><td>25 lines</td><td>The only tracked file in <code>tools/</code>: the layout the gate expects, where each component comes from, and the version each was taken at — so the 64 MB exclusion in §2.2 is recoverable rather than merely declared</td></tr>
+      </tbody>
+    </table>
+    <h4>Deliberately not done</h4>
+    <ul>
+      <li><strong>No gameplay code changed.</strong> The only files under <code>src/</code> touched in the
+      commit were already there; the gate passed before and after.</li>
+      <li><strong>No history was rewritten or back-dated.</strong> One root commit, dated when it was
+      actually made, is more honest than an invented timeline.</li>
+      <li><strong>No <code>LICENSE</code> yet.</strong> The README states that the repository is
+      all-rights-reserved until a licence is added; choosing one is a decision, not a default.</li>
+      <li><strong>No <code>v0.1.0-phase1</code> tag.</strong> The publish flow pushes branches, not tags,
+      and tagging before the acceptance playtest would mark an unverified state as a release.</li>
+      <li><strong>No <code>*.rbxm</code> ignore rule</strong>, for the reason in §2.2.</li>
+    </ul>
+  </details>
+</section>
+
+<section id="handoff">
+  <h2>4. Handoff and next steps</h2>
+  <p>Ordered by urgency: one credential to fix, one push to make, then the acceptance work that Phase 1
+  was always waiting on. Nothing in section 4.3 onwards is blocked by anything in section 4.1 or 4.2.</p>
+
+  <h3>4.1 Do this first — revoke the token in the remote URL</h3>
+  <details open="open">
+    <summary>A credential is sitting in <code>.git/config</code> in plaintext</summary>
+    <p>Publishing configured the remote as an authenticated URL with a GitHub personal access token
+    embedded in it, of the form <code>https://ghp_&lt;redacted&gt;@github.com/wiwiwi25/AI_sandbox.git</code>.
+    It is not in the commit — <code>.git/</code> is never tracked, and the token does not appear anywhere
+    in the 37 files — but it is a live credential on disk, in shell history, and in any copy of the folder.
+    Rotation is the only real fix; removing it from the URL without revoking it just hides it.</p>
+    <ul class="checklist">
+      <li>[ ] <strong>Revoke the token</strong> at <code>github.com/settings/tokens</code>. Do this before
+      anything else, and do not first paste it anywhere to "check" it.</li>
+      <li>[ ] <strong>Rewrite the remote to the tokenless URL:</strong><br />
+      <code>git remote set-url origin https://github.com/wiwiwi25/AI_sandbox.git</code></li>
+      <li>[ ] <strong>Confirm it is gone:</strong> <code>git remote -v</code> should print the plain
+      <code>https://github.com/wiwiwi25/AI_sandbox.git</code> twice, with no <code>@</code> before the host</li>
+      <li>[ ] <strong>Expect no push breakage:</strong> Git Credential Manager is already the configured
+      helper (from Git for Windows' system config, <code>C:/Program Files/Git/etc/gitconfig</code>), so
+      the next push authenticates through VS Code's GitHub sign-in or a GCM prompt instead of the token</li>
+    </ul>
+    <p>Why this is worth a section of its own: this is the one item in this report that is a security
+    problem rather than a project-management one, and it is the item most likely to be deferred because
+    everything still works while it is unfixed.</p>
+  </details>
+
+  <h3>4.2 Publish this report</h3>
+  <ul class="checklist">
+    <li>[ ] <strong>Push the report commit.</strong> It is committed locally on <code>main</code> as the
+    one commit ahead of <code>origin/main</code>; in VS Code this is Source Control →
+    <strong>Sync Changes</strong>. (To undo instead: <code>git reset --soft HEAD~1</code> returns it to
+    the working tree.)</li>
+    <li>[ ] <strong>Check the rendered page once</strong> in a browser — the file is self-contained HTML
+    with no external assets, so it opens straight from <code>docs/</code> and renders from GitHub as
+    source rather than as a page.</li>
+    <li>[ ] <strong>Naming note:</strong> this file is <code>docs/phase1_summary.html</code> in lower case
+    as requested, while its three siblings are upper case (<code>docs/PHASE1_*.md</code>). Renaming it to
+    <code>PHASE1_SUMMARY.html</code> later is a one-line change; leaving it is not wrong, just quieter
+    about the convention.</li>
+  </ul>
+
+  <h3>4.3 Studio confirmation of the two properties</h3>
+  <p>These are the checks the gate structurally cannot do, so they are the first thing to run next
+  session. Rebuild first — Studio plays the place, not the project:</p>
+  <ul class="checklist">
+    <li>[ ] <code>rojo build default.project.json -o build/CursedGems.rbxlx</code>, then open that place
+    in Studio</li>
+    <li>[ ] <strong>Output at boot is the expected twelve lines and no red.</strong> The specific spam to
+    look for is gone: with <code>CharacterAutoLoads</code> declared <code>false</code>, the player state
+    loads before the character exists, so the load path is no longer racing the spawn. Confirm the four
+    system banners plus the <code>0.1.0-phase1 ready in NN ms</code> line (playtest A1)</li>
+    <li>[ ] <strong>Chat works</strong> — press <code>/</code>, send a line, and check that
+    <code>Chat</code> in the Explorer has no orange warning badge (playtest A17)</li>
+  </ul>
+
+  <h3>4.4 Run Track A — the technical smoke test</h3>
+  <p>Seventeen checks, roughly ten minutes, one player, unpublished Studio. A failure means stop and fix
+  before touching anything else, which is why Track A runs before Track B.</p>
+  <ul class="checklist">
+    <li>[ ] Work down A1–A17 in order, comparing against the quoted expected text rather than against
+    "looks about right"</li>
+    <li>[ ] Record the result of each check in the playtest document — the reason this matters is in the
+    commit message: <em>Track A is 17 checks and none of them has a recorded result yet</em></li>
+    <li>[ ] Treat A2 and A17 as the two that carry the most information: they are the only checks that
+    cover the two project-file properties, and both fail silently in code terms</li>
+    <li>[ ] If A2 fails, stop — a traceback instead of the <code>JOIN</code> line means character loading
+    threw, and the player sits in an empty world by design rather than by accident</li>
+  </ul>
+
+  <h3>4.5 Run Track B — the outsider session</h3>
+  <ul class="checklist">
+    <li>[ ] 1–3 people who have never seen the game, published place, private/1 server, 20–30 minutes each</li>
+    <li>[ ] Do not explain anything: this is the only track that can pass or fail <strong>G2</strong>,
+    <strong>G3</strong> and <strong>G4</strong>, and it is worth nothing if the tester is guided</li>
+    <li>[ ] Fill in the results table (tester, date, persisted, minutes, collected, P1–P7, and the
+    <code>SESSION</code> line verbatim) — it is currently empty</li>
+  </ul>
+
+  <h3>4.6 Settle G5 and G6 — the numbers</h3>
+  <ul class="checklist">
+    <li>[ ] <strong>G5:</strong> confirm that <code>P1</code> income lands near the modelled figure, and
+    use the fix order in §8 of the playtest document if it does not</li>
+    <li>[ ] <strong>G6:</strong> every value still marked <code>[SIM]</code> has either been validated by
+    a measurement or explicitly re-marked as an assumption — the failure mode this exists to prevent is a
+    number shipping on an assumption nobody wrote down</li>
+  </ul>
+
+  <h3>4.7 Then Phase 2</h3>
+  <p>The playtest document's own closing rule: <em>when G1–G6 in §1 are settled with evidence, Phase 1 is
+  done and Phase 2 is fishing.</em> Nothing else in this report gates that transition, and the items below
+  are improvements rather than blockers:</p>
+  <ul class="checklist">
+    <li>[ ] <code>tools/fetch-tools.ps1</code> with version pins, so <code>git clone</code> plus one script
+    is a working gate — the gap row added to architecture §15</li>
+    <li>[ ] A <code>LICENSE</code>, so the repository stops being all-rights-reserved by default</li>
+    <li>[ ] The <code>v0.1.0-phase1</code> tag, once the playtest gives the version a defensible state to point at</li>
+    <li>[ ] Behavioural tests: the gate proves the code compiles and type-checks, and nothing more; there
+    are no tests of behaviour today, and the two project-file properties are the standing argument for
+    adding them</li>
+  </ul>
+</section>
+</main>
+
+<footer>
+  <p><strong>Sources of truth.</strong> This report is a point-in-time summary; it defers to
+  <a href="PHASE1_ARCHITECTURE.md">PHASE1_ARCHITECTURE.md</a> for what is implemented,
+  <a href="PHASE1_DESIGN.md">PHASE1_DESIGN.md</a> for why the numbers are what they are, and
+  <a href="PHASE1_PLAYTEST.md">PHASE1_PLAYTEST.md</a> for how it gets tested. Where this file and those
+  disagree, they win.</p>
+  <p><strong>Reproducing the verified state.</strong> From the repository root:
+  <code>.\check.ps1</code>, then <code>git log --oneline</code>,
+  <code>git ls-tree -r HEAD --name-only</code>, <code>git ls-files --eol</code> and
+  <code>git status --porcelain</code>. Every claim in section 2 was produced by one of those commands.</p>
+</footer>
+
+</body>
+</html>
