@@ -25,7 +25,17 @@ Config.Economy = {
     STARTING_GEMS = 15,
 
     -- [SIM] Base drain of the curse, in gems per minute while actively playing.
-    BASE_DECAY_PER_MINUTE = 10,
+    -- Re-derived rather than re-guessed, twice. The Phase 1 pass modelled income
+    -- at 13.0 gems/min; the playtest pass then widened the pockets from 34 to 50
+    -- studs and pushed them from 86 to 108 studs out, which adds travel time and
+    -- pulls income down to 12.5. Seven point five keeps the published net column
+    -- below intact (0 creatures = +5/min, 2 = break even, 4+ = losing).
+    --
+    -- Why the base moved instead of income: the +5 column is the promise, and
+    -- the upkeep curve (2.5/creature) is what makes it legible. Both survive a
+    -- uniform shift; what does NOT survive is halving income and keeping the
+    -- drain, which would have made the curse a 7-minute wait.
+    BASE_DECAY_PER_MINUTE = 7.5,
 
     -- [SIM] Each owned creature eats gems continuously. This is the core
     -- risk/reward lever: 0 creatures = net +5/min, 2 = break even, 4+ = losing.
@@ -69,19 +79,32 @@ Config.Gems = {
     BOB_SPEED = 2,
     GEM_HEIGHT = 3,
 
-    -- Respawn: randomized delay AND randomized location. A fixed respawn turns
-    -- farming into a memorized route (a chore); randomization spreads players
-    -- across the map and keeps each pickup a small variable reward.
-    POOL_BASE = 10,
-    POOL_PER_PLAYER = 2,
-    POOL_MIN = 12,
-    POOL_MAX = 32,
+    -- Respawn: randomized delay AND randomized location, drawn from all four
+    -- zones. A fixed respawn turns farming into a memorized route (a chore);
+    -- a global draw also stops one pocket from feeding its own camper.
+    --
+    -- The delay is real: a collected slot is RESERVED for 5-8 s, so the field
+    -- visibly thins and the gem does not come straight back (see GemSystem).
+    -- It is deliberately non-binding for a player walking the circuit - sixteen
+    -- gems refilling in five to eight seconds outpace anyone - and binding for a
+    -- player standing in one pocket, which is the point.
+    --
+    -- Pool size is now an INCOME knob, not just a liveliness knob. Gem density
+    -- is what the economy model depends on, so widening the pockets without
+    -- adding gems would have cut income by about 45%. Sixteen live gems is four
+    -- per pocket, which holds 12.5 gems/min at the published +5.
+    POOL_BASE = 12,
+    POOL_PER_PLAYER = 4,
+    POOL_MIN = 16,
+    POOL_MAX = 44,
     RESPAWN_MIN_SECONDS = 5,
     RESPAWN_MAX_SECONDS = 8,
 
     -- Placement constraints: no two gems crowd one spot, and nothing spawns on
-    -- top of a player.
-    MIN_GEM_SPACING = 40,
+    -- top of a player. Spacing defines a POCKET rather than a field cell: at 13
+    -- studs four live gems inside one 50-stud pocket read as a cluster you can
+    -- walk through, instead of a single pile in the middle of it.
+    MIN_GEM_SPACING = 13,
     MIN_SPAWN_DISTANCE_FROM_PLAYER = 25,
     MAX_SPAWN_ATTEMPTS = 24,
 }
@@ -120,8 +143,13 @@ Config.Curse = {
     -- Expressed in gems rather than percent, because gems ARE the meter.
     WARN_AT = { 25, 10 },
 
-    NORMAL_WALK_SPEED = 16,
-    CURSED_WALK_SPEED = 10,
+    -- Tuned in the Phase 1 pass. 22 cuts the average gem hop (about 58 studs)
+    -- from 3.8 s to 2.8 s while staying under the speed at which the default
+    -- walk animation starts to read as sliding. Cursed speed is scaled to keep
+    -- the FELT penalty identical (14/22 = 0.636 vs the old 10/16 = 0.625);
+    -- leaving it at 10 would have silently made the curse far harsher.
+    NORMAL_WALK_SPEED = 22,
+    CURSED_WALK_SPEED = 14,
     NORMAL_JUMP_POWER = 50,
     CURSED_JUMP_POWER = 38,
 
@@ -145,9 +173,35 @@ Config.World = {
 
     TREE_COUNT = 90,
     ROCK_COUNT = 55,
-    -- Gems spawn in a ring so the shrine stays readable as a social space.
-    GEM_FIELD_INNER_RADIUS = 60,
-    GEM_FIELD_OUTER_RADIUS = 240,
+
+    -- Gems live in four pockets rather than a uniform 60-240 ring. The ring made
+    -- the player sweep a 170-stud-wide annulus hunting for the next gem; four
+    -- known pockets turn travel into a route. Centres sit on the axes at 108
+    -- studs with a 50-stud radius, so the near edge is 58 studs from the shrine
+    -- (clear of the 48-stud safe radius and well clear of the pad), the player
+    -- spawn at 44 stays outside every pocket, and neighbouring centres are 152.7
+    -- studs apart (6.9 s at the new walk speed).
+    --
+    -- The 34-stud pocket at 86 studs was the Phase 1 shape. Playtesting read it
+    -- as a tight pile next to the shrine, so it grew 47% and moved out 26%. The
+    -- base drain moved with it - see BASE_DECAY_PER_MINUTE above for the link.
+    --
+    -- Respawn is deliberately NOT zone-bound: a zone that refilled itself would
+    -- make standing still the best income in the game (see GemSystem).
+    GEM_ZONES = {
+        { center = Vector3.new(0, 0, -108), radius = 50 },
+        { center = Vector3.new(108, 0, 0), radius = 50 },
+        { center = Vector3.new(0, 0, 108), radius = 50 },
+        { center = Vector3.new(-108, 0, 0), radius = 50 },
+    },
+    -- 4 zones x 16 = 64 legal positions: POOL_MAX (44) plus headroom, so even a
+    -- full server keeps at least five free points in every pocket.
+    GEM_POINTS_PER_ZONE = 16,
+
+    -- Prop scatter bounds. These used to be the gem field; gems no longer use
+    -- them, and the new names say what they actually control.
+    PROP_FIELD_INNER_RADIUS = 60,
+    PROP_FIELD_OUTER_RADIUS = 240,
 }
 
 Config.Follower = {

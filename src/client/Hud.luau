@@ -159,14 +159,20 @@ local function build(root: ScreenGui): Widgets
     tintNote.TextXAlignment = Enum.TextXAlignment.Center
     tintNote.TextTransparency = 0.25
 
+    -- Top-RIGHT, not top-left. The native chat window owns the top-left corner,
+    -- and a reserve card underneath it is a card nobody can read - the exact bug
+    -- the first playtest reported. The card stacks under the COLLECTION button,
+    -- which was already anchored here, so the right edge is a single column:
+    -- button, reserve, then the collection panel below.
     local card = Theme.frame(
         root,
         "Reserve",
         UDim2.fromOffset(272, 160),
-        UDim2.fromOffset(20, 20),
+        UDim2.new(1, -20, 0, 62),
         Theme.Color.panel,
         0.1
     )
+    card.AnchorPoint = Vector2.new(1, 0)
     Theme.corner(card, 14)
     Theme.stroke(card, Theme.Color.accent, 1.2, 0.65)
 

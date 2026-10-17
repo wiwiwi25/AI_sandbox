@@ -47,15 +47,15 @@ CurseSystem.start(build.shrineCenter)
 FollowerSystem.start()
 StateSync.start()
 
-print(
-    string.format(
-        "[CursedGems] %s ready in %d ms: %d gem positions, %d summon altars, %d/%d/%d gems per minute base/mercy/shrine.",
-        Config.VERSION,
-        math.floor((os.clock() - startedAt) * 1000),
-        #build.gemSpawnPoints,
-        #build.pens,
-        Config.Economy.BASE_DECAY_PER_MINUTE,
-        Config.Economy.BASE_DECAY_PER_MINUTE * Config.Economy.MERCY_MULTIPLIER,
-        Config.Economy.BASE_DECAY_PER_MINUTE * Config.Economy.SHRINE_DECAY_MULTIPLIER
-    )
-)
+print(string.format(
+    -- %.4g, not %d: the base drain is 7.5 and %d truncates it to 7, which
+    -- would print a boot line that contradicts the HUD.
+    "[CursedGems] %s ready in %d ms: %d gem positions, %d summon altars, %.4g/%.4g/%.4g gems per minute base/mercy/shrine.",
+    Config.VERSION,
+    math.floor((os.clock() - startedAt) * 1000),
+    #build.gemSpawnPoints,
+    #build.pens,
+    Config.Economy.BASE_DECAY_PER_MINUTE,
+    Config.Economy.BASE_DECAY_PER_MINUTE * Config.Economy.MERCY_MULTIPLIER,
+    Config.Economy.BASE_DECAY_PER_MINUTE * Config.Economy.SHRINE_DECAY_MULTIPLIER
+))

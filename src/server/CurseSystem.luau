@@ -221,7 +221,7 @@ function CurseSystem.start(center: Vector3)
 
     print(
         string.format(
-            "[CursedGems] CurseSystem online: base drain %d/min, %.1f per creature.",
+            "[CursedGems] CurseSystem online: base drain %.4g/min, %.1f per creature.",
             Config.Economy.BASE_DECAY_PER_MINUTE,
             Config.Economy.UPKEEP_PER_CREATURE_PER_MINUTE
         )

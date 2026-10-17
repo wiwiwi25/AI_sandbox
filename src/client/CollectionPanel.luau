@@ -121,11 +121,14 @@ local function buildCard(
 end
 
 function CollectionPanel.create(parent: Instance): Frame
+    -- Starts below the reserve card (62 offset + 160 tall), because both widgets
+    -- are right-aligned: an open panel would otherwise cover the balance the
+    -- player just opened it to think about.
     local created = Theme.frame(
         parent,
         "Collection",
-        UDim2.new(0, PANEL_WIDTH, 1, -84),
-        UDim2.new(1, -(PANEL_WIDTH + 20), 0, 64),
+        UDim2.new(0, PANEL_WIDTH, 1, -256),
+        UDim2.new(1, -(PANEL_WIDTH + 20), 0, 236),
         Theme.Color.panel,
         0.06
     )

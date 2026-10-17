@@ -69,23 +69,24 @@ code produces a fixed string, so "looks about right" is not an available answer.
 
 | # | Do this | Expect | If it fails, look at |
 |---|---------|--------|----------------------|
-| A1 | Read the Output window at boot | `persistence:`, `GemSystem online: NN legal positions, target pool 12.`, `SummonSystem online: 4 altars.`, `CurseSystem online: base drain 10/min, 2.5 per creature.`, `StateSync online at 4 Hz.`, then `0.1.0-phase1 ready in NN ms: NN gem positions, 4 summon altars, 10/5/2.5 gems per minute base/mercy/shrine.` | `Main.server.luau`, then whichever system is silent |
+| A1 | Read the Output window at boot | `persistence:`, `GemSystem online: NN legal positions, target pool 16.`, `SummonSystem online: 4 altars.`, `CurseSystem online: base drain 7.5/min, 2.5 per creature.`, `StateSync online at 4 Hz.`, then `0.1.0-phase1 ready in NN ms: NN gem positions, 4 summon altars, 7.5/3.75/1.875 gems per minute base/mercy/shrine.` | `Main.server.luau`, then whichever system is silent |
 | A2 | Look for the `JOIN` line | `[CursedGems] JOIN <name> \| first ever session \| persisted no \| gems 15` | **Stop.** A traceback instead of a `JOIN` line means character loading threw — see the note below the table |
 | A3 | Watch the character spawn | Character lands on ground at the spawn point, facing the shrine. No fall-through, no void | `Config.World.PLAYER_SPAWN`, `WorldBuilder.luau` |
-| A4 | Read the HUD | `GEM RESERVE` shows `15`; drain line reads `no drain`; countdown reads about `1m 30s` and is falling | `Hud.luau`, `StateSync.luau` |
+| A4 | Read the HUD | The `GEM RESERVE` card sits in the **top-right, clear of the chat window**, with `COLLECTION` directly above it; it shows `15`; drain line reads `no drain`; countdown reads about `2m 00s` and is falling | `Hud.luau`, `StateSync.luau` |
 | A5 | Wait out the 60-second grace without picking anything up | Balance stays at **15**. First loss happens after the grace window ends | `Config.Economy.SPAWN_GRACE_SECONDS`, `CurseSystem.luau` |
-| A6 | Walk to a gem and hold the prompt | Balance rises by **1** (by **5** for a cursed gem); the gem disappears, the prompt vanishes, and a gem returns somewhere in the ring 5–8 s later | `GemSystem.luau`, `Config.Gems` |
+| A6 | Walk to a gem and hold the prompt | Balance rises by **1** (by **5** for a cursed gem); the gem disappears, the prompt vanishes, and **nothing replaces it for 5–8 s** — the field is briefly one gem short, then a gem appears somewhere in one of the four zones. Watch one empty spot twice: it must stay empty for the whole delay (the index is reserved), not refill instantly | `GemSystem.luau`, `Config.Gems` |
 | A7 | Walk to an altar and hold the prompt | Prompt reads `Summoning Altar  -  10 gems` on the **first ever** summon (then `25`); hold is visibly longer than a pickup (0.35 s vs 0.15 s); a 2.2 s reveal plays; a creature then trails behind you | `SummonSystem.luau`, `Config.Summon` |
 | A8 | Open the collection panel | Header reads `N of 5 discovered`; the summoned species renders as a real model with its name and rarity colour; the rest are dark silhouettes labelled `???` | `CollectionPanel.luau` |
-| A9 | Check the drain with one creature | Drain line reads `-12.5 gems / min` (10 base + 2.5 upkeep). Countdown is now shorter than it was | `PlayerDataService.getUpkeepPerMinute`, `Config.Economy` |
-| A10 | Let the balance fall to 25, then 10, then 0 | Banners `Gem reserves low: N left`, then `CRITICAL: N gems left`; at zero: `CURSED` label plus a `Cursed - collect a gem to lift it` toast, walk speed 16 → **10**, jump 50 → **38**. **No damage, ever.** The next gem picked up prints `Curse lifted` and restores movement | `CurseSystem.luau`, `Config.Curse` |
-| A11 | With one creature, drop below 5 gems | Drain halves (`12.5` → `6.25`): the mercy window, not a bug | `Config.Economy.MERCY_THRESHOLD` |
-| A12 | Stand within 48 studs of the shrine | Drain reads `-2.5 gems / min` with no creatures (0.25× the base), and `no drain` if the grace is still running | `Config.Economy.SHRINE_SAFE_RADIUS`, `CurseSystem.luau` |
+| A9 | Check the drain with one creature | Drain line reads `-10.0 gems / min` (7.5 base + 2.5 upkeep). Countdown is now shorter than it was | `PlayerDataService.getUpkeepPerMinute`, `Config.Economy` |
+| A10 | Let the balance fall to 25, then 10, then 0 | Banners `Gem reserves low: N left`, then `CRITICAL: N gems left`; at zero: `CURSED` label plus a `Cursed - collect a gem to lift it` toast, walk speed 22 → **14**, jump 50 → **38**. **No damage, ever.** The next gem picked up prints `Curse lifted` and restores movement | `CurseSystem.luau`, `Config.Curse` |
+| A11 | With one creature, drop below 5 gems | Drain halves (`10` → `5`): the mercy window, not a bug | `Config.Economy.MERCY_THRESHOLD` |
+| A12 | Stand within 48 studs of the shrine | Drain reads `-1.9 gems / min` with no creatures (0.25× the base), and `no drain` if the grace is still running | `Config.Economy.SHRINE_SAFE_RADIUS`, `CurseSystem.luau` |
 | A13 | Confirm persistence behaviour in Studio | `Load failed for user NN (...); using memory-only storage for the rest of this server (progress will not persist).` and `persisted no`. **This is expected**, not a bug | `DataStoreLite.luau`, `Config.Data.ALLOW_MEMORY_FALLBACK` |
-| A14 | Count gems on the field | Between **12** and **32** visible (`POOL_MIN`/`POOL_MAX`); they thin out as players join or leave | `GemSystem.targetPoolSize`, `Config.Gems` |
+| A14 | Count gems on the field | Between **16** and **44** visible (`POOL_MIN`/`POOL_MAX`); they thin out as players join or leave | `GemSystem.targetPoolSize`, `Config.Gems` |
 | A15 | Stop the session | `SESSION <name> \| NN.N min \| collected N (N.N/min P1) \| ... \| persisted no` — every P-mapping present with a number after it | `PlayerDataService.logSessionSummary` |
 | A16 | **Test → Clients and Servers**, 2 players | Two `JOIN` lines. One player summons while the other stands within 120 studs: both see the reveal. Picking a gem by one does **not** change the other's balance | `SummonSystem` (`BROADCAST_RADIUS`), `Config.Economy` |
 | A17 | Press `/` and send a chat message | The line appears when you press Enter, and `Chat` in the Explorer carries no orange warning badge. Silence here means `ChatVersion` is not `TextChatService` in the built place — rebuild after touching the project file | `default.project.json` (`ChatVersion`), [§5 of the architecture document](PHASE1_ARCHITECTURE.md#5-repository-layout) |
+| A18 | Count gems per pocket | With one player, roughly four gems sit inside each of the four pockets (50-stud discs, 108 studs from the shrine on the axes). Empty a pocket completely: the respawns land elsewhere on the map rather than refilling that pocket, which is the anti-camping rule working as designed | `Config.World.GEM_ZONES`, `GemSystem.luau` |
 
 **Why A2 is the important one.** A2 is not a formality: `CharacterAutoLoads` is `false` by
 design, so *any* exception inside `PlayerDataService.load` means the player never receives a
@@ -287,7 +288,7 @@ only tell you whether the model held.
 
 | Prediction | Pass band | If it fails, change — in this order |
 |------------|-----------|-------------------------------------|
-| `P1` income | ≈ 11 gems/min | **Income first** (`Config.Gems.COMMON_VALUE` / `CURSED_VALUE`), never the drain. `P1` is the load-bearing number: every other balance decision is derived from it (`O2`) |
+| `P1` income | ≈ 12.5 gems/min (≈9.5 pickups/min) | **Income first** (`Config.Gems.COMMON_VALUE` / `CURSED_VALUE`), never the drain. `P1` is the load-bearing number: every other balance decision is derived from it (`O2`) |
 | `P2` collection | 1–3 creatures at leave | 0–1: `Config.Summon.COST` / `FIRST_SUMMON_COST`, then altar discoverability from the spawn. 5+: raise `UPKEEP_PER_CREATURE_PER_MINUTE` |
 | `P3` curse share | well under 30% | `MERCY_*`, then `SHRINE_SAFE_RADIUS` / `SHRINE_DECAY_MULTIPLIER`, then income — that exact order is in [`PHASE1_DESIGN.md` §7](PHASE1_DESIGN.md#7-what-would-falsify-this) |
 | `P4` first summon | ≥ 1 in the first session | Altar discoverability from the spawn point, **not** the price — the onboarding money is already right |

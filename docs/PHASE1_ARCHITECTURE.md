@@ -23,8 +23,8 @@ The whole economy is a single equation, documented in
 [`PHASE1_DESIGN.md` §2](PHASE1_DESIGN.md#2-the-model):
 
 ```
-drain/min = (10 + 2.5 x creatures)  x  mercy  x  shrine
-income    ~= 15 gems/min            (design assumption, not yet playtested)
+drain/min = (7.5 + 2.5 x creatures)  x  mercy  x  shrine
+income    ~= 12.5 gems/min           (design assumption, not yet playtested)
 ```
 
 0 creatures nets `+5/min`, 2 creatures is break-even, 4 or more loses. The player
@@ -234,7 +234,7 @@ not the project.
 
 | Module | LOC | Job | Public surface |
 |--------|----:|-----|----------------|
-| `Config.luau` | 201 | The single source of truth for every tunable. Logic files must contain **no** magic numbers. | `VERSION`, `Economy`, `Gems`, `Tags`, `Summon`, `Curse`, `World`, `Follower`, `Net`, `Data`, `Debug` |
+| `Config.luau` | 255 | The single source of truth for every tunable. Logic files must contain **no** magic numbers. | `VERSION`, `Economy`, `Gems`, `Tags`, `Summon`, `Curse`, `World`, `Follower`, `Net`, `Data`, `Debug` |
 | `Util.luau` | 70 | Small pure helpers. | `weightedPick`, `shuffle`, `round`, `distanceXZ`, `isFiniteNumber`, `abbreviate` |
 | `Pool.luau` | 105 | Instance pooling, so the gem field never allocates during play. | `new`, `prewarm`, `acquire`, `release`, `releaseAll`, `stats`, `destroy` |
 | `GemCatalog.luau` | 94 | The two Phase 1 gem kinds and their odds. | `Kinds`, `ById`, `get`, `roll`, `expectedValue` |
@@ -249,10 +249,10 @@ not the project.
 |--------|----:|-----|----------------|
 | `Main.server.luau` | 61 | Bootstrap. The start order *is* the content of this file. | — |
 | `Imports.luau` | 5 | The one `WaitForChild` chain for shared modules. | the package |
-| `DataStoreLite.luau` | 430 | Persistence: session locks, schema merge, batched autosave, retries, memory fallback. | `new`, `acquire`, `getSession`, `markDirty`, `save`, `saveWithRetry`, `release`, `isMemoryOnly`, `getStats` |
-| `PlayerDataService.luau` | 506 | The **only** place a player's currency, collection or stats change. | `load`, `awaitSession`, `getSession`, `getData`, `getGems`, `addGems`, `spendGems`, `applyDrain`, `recordPickup`, `getCreatures`, `creatureCount`, `addCreature`, `lifetimeSummons`, `getSummonCost`, `getUpkeepPerMinute`, `getGraceRemaining`, `addCursedSeconds`, `getStoreStats`, `isMemoryOnly`, `start` |
-| `WorldBuilder.luau` | 645 | Deterministic, seeded construction of the whole map. | `build() -> BuildResult { folder, gemSpawnPoints, pens, shrineCenter }` |
-| `GemSystem.luau` | 417 | The gem field: spawn legality, pool target, prompts, pickup validation, respawn. | `start(points)`, `stop`, `getStats`, `forceReconcile` |
+| `DataStoreLite.luau` | 441 | Persistence: session locks, schema merge, batched autosave, retries, memory fallback. | `new`, `acquire`, `getSession`, `markDirty`, `save`, `saveWithRetry`, `release`, `isMemoryOnly`, `getStats` |
+| `PlayerDataService.luau` | 514 | The **only** place a player's currency, collection or stats change. | `load`, `awaitSession`, `getSession`, `getData`, `getGems`, `addGems`, `spendGems`, `applyDrain`, `recordPickup`, `getCreatures`, `creatureCount`, `addCreature`, `lifetimeSummons`, `getSummonCost`, `getUpkeepPerMinute`, `getGraceRemaining`, `addCursedSeconds`, `getStoreStats`, `isMemoryOnly`, `start` |
+| `WorldBuilder.luau` | 748 | Deterministic, seeded construction of the whole map. | `build() -> BuildResult { folder, gemSpawnPoints, pens, shrineCenter }` |
+| `GemSystem.luau` | 453 | The gem field: spawn legality, pool target, prompts, pickup validation, respawn. | `start(points)`, `stop`, `getStats`, `forceReconcile` |
 | `SummonSystem.luau` | 220 | The altars: spend gems, roll a creature, reveal it, notify witnesses. | `start(pens)`, `stop`, `getAltarCount` |
 | `CurseSystem.luau` | 241 | The drain: ticks the debt, escalates warnings, applies the curse. | `start(center)`, `stop`, `isCursed(player)`, `currentRatePerMinute(player)` |
 | `FollowerSystem.luau` | 205 | Keeps up to `MAX_VISIBLE_FOLLOWERS` creatures trailing each player. | `start`, `stop`, `getStats` |
@@ -266,8 +266,8 @@ not the project.
 | `Imports.luau` | 5 | The one `WaitForChild` chain for shared modules. | the package |
 | `ClientState.luau` | 159 | The client's mirror of server truth. No independent copy of any number. | `get()`, `isLoaded()`, `onChanged(cb)`, `start()` + `Snapshot`, `CollectionEntry` |
 | `Theme.luau` | 199 | Colours, fonts, rarity palette and widget factories. Asset-free. | `Color`, `Font`, `Rarity`, `RarityOrder`, `rarityColor`, `rarityRank`, `corner`, `stroke`, `pad`, `tween`, `frame`, `label`, `button` |
-| `Hud.luau` | 647 | The UI composition root: builds every widget, owns `CollectionPanel`, repaints at 4 Hz. | `start()` |
-| `CollectionPanel.luau` | 264 | The grid of collection cards, each with a live 3D preview; undiscovered species are silhouettes. | `create(parent)`, `setEntries(entries)`, `toggle()`, `isOpen()` |
+| `Hud.luau` | 653 | The UI composition root: builds every widget, owns `CollectionPanel`, repaints at 4 Hz. | `start()` |
+| `CollectionPanel.luau` | 267 | The grid of collection cards, each with a live 3D preview; undiscovered species are silhouettes. | `create(parent)`, `setEntries(entries)`, `toggle()`, `isOpen()` |
 | `EffectFx.luau` | 206 | World-space feedback: pickup pops, reveal flashes, witness flashes. | `start()` |
 | `SpinFx.luau` | 137 | The one ambient animation loop, driven by CollectionService tags. | `track(tag, spin, bobHeight, bobSpeed)`, `start()`, `count()` |
 
@@ -393,7 +393,7 @@ the balance can be re-derived without reading five files.
 ```luau
 -- PlayerDataService.getUpkeepPerMinute
 base   = BASE_DECAY_PER_MINUTE + UPKEEP_PER_CREATURE_PER_MINUTE * creatures
-       = 10 + 2.5 * creatures
+       = 7.5 + 2.5 * creatures
 
 -- CurseSystem.currentRatePerMinute
 rate   = base
@@ -417,7 +417,7 @@ is survivable rather than fatal.
    not yet authoritative.
 2. Skip entirely while `SPAWN_GRACE_SECONDS` (60) remains, so onboarding is safe.
 3. `applyDrain(rate / 60 * delta)` — the amount is **fractional** and floored at
-   zero. Rounding to whole gems every tick would turn a 10/min drain into a 60/min
+   zero. Rounding to whole gems every tick would turn a 7.5/min drain into a 60/min
    drain, and gems must never go negative or the mercy rule would read as a debt.
 4. If the balance is already 0, count the time instead
    (`addCursedSeconds(delta)`) and keep the curse showing.
@@ -436,26 +436,35 @@ expectedValue = (COMMON_WEIGHT * COMMON_VALUE + CURSED_WEIGHT * CURSED_VALUE) / 
               = 1.32 gems per pickup
 ```
 
-The field targets `POOL_BASE` (10) plus `POOL_PER_PLAYER` (2) per player, clamped
-between `POOL_MIN` (12) and `POOL_MAX` (32) and never above the number of legal
-points, respawning 5-8 s after a pickup at a
-freshly randomised legal point. Randomised delay **and** location on purpose: a fixed
-respawn turns farming into a memorised route, which is a chore rather than a game.
+The field targets `POOL_BASE` (12) plus `POOL_PER_PLAYER` (4) per player, clamped
+between `POOL_MIN` (16) and `POOL_MAX` (44) and never above the number of legal points.
+Sixteen live gems is four per pocket, and that density is load-bearing: the income model
+is a function of how far the average gem is, so multiplying pocket area without adding
+gems divides income (measured: twelve gems in the widened pockets pays 10.2 gems/min
+instead of 12.5).
+
+A pick-up reserves its slot for 5-8 s (`RESPAWN_MIN_SECONDS`/`RESPAWN_MAX_SECONDS`, plus
+up to one 0.5 s scheduler tick) before the index is legal again, then respawns at a
+freshly randomised point.
+Randomised delay **and** location on purpose: a fixed respawn turns farming into a
+memorised route, which is a chore rather than a game. The reservation is what makes the
+delay real — the sweep skips cooling indices and counts pending respawns as gems the
+field is already owed, so it cannot refill the hole from somewhere else on its next tick.
 
 `GemCatalog.expectedValue()` exists so this number is computed rather than asserted.
 
 ### The balance
 
-The `[SIM]`-tagged values assume roughly 11 pickups/min (about 15 gems/min for a
+The `[SIM]`-tagged values assume roughly 9.5 pickups/min (about 12.5 gems/min for a
 player who keeps moving):
 
 | Commitments | Drain/min | Net/min | Reading |
 |-------------|----------:|--------:|---------|
-| 0 creatures | 10 | **+5** | You are banking gems. |
-| 1 creature | 12.5 | +2.5 | Comfortable. |
-| 2 creatures | 15 | **0** | Break-even. |
-| 3 creatures | 17.5 | -2.5 | You are working for your pets. |
-| 4+ creatures | 20+ | negative | The collection *is* the difficulty. |
+| 0 creatures | 7.5 | **+5** | You are banking gems. |
+| 1 creature | 10 | +2.5 | Comfortable. |
+| 2 creatures | 12.5 | **0** | Break-even. |
+| 3 creatures | 15 | -2.5 | You are working for your pets. |
+| 4+ creatures | 17.5+ | negative | The collection *is* the difficulty. |
 
 ### Summons
 
@@ -579,7 +588,7 @@ BuildResult = {
 | Shrine (safe zone + social hub) | `(0, 0, 0)`, pad radius 26, safe radius 48, `0.25x` drain |
 | Cave | centre `(-150, 0, -150)`, size `(96, 32, 96)` |
 | Scatter | 90 trees, 55 rocks |
-| Gem field | ring from radius 60 to 240, so the shrine stays readable as social space |
+| Gem field | four pockets: 50-stud radius discs 108 studs from the shrine on the axes, 152.7 studs apart, so the shrine stays readable as social space |
 
 The build result is **handed** to the systems rather than rediscovered by them:
 `GemSystem.start(build.gemSpawnPoints)`, `SummonSystem.start(build.pens)`,
@@ -588,7 +597,9 @@ owner.
 
 Gem placement is enforced at spawn time, not just at build time:
 
-* `MIN_GEM_SPACING` (40) — no two gems crowd one spot.
+* `MIN_GEM_SPACING` (13): no two gems crowd one spot. Inside a zone this is what
+  makes four gems read as a pocket you can walk through rather than a pile; 152.7
+  studs between zone centres makes the cross-zone case moot.
 * `MIN_SPAWN_DISTANCE_FROM_PLAYER` (25) — nothing appears on top of somebody.
 * `MAX_SPAWN_ATTEMPTS` (24) — then fall back to the least-bad legal point rather than
   starving the field. A crowded server getting a gem slightly too close is better
@@ -742,7 +753,7 @@ Stated plainly, because a document that says "done" without a gap list is not us
 | Gap | Status | Where the work goes |
 |-----|--------|---------------------|
 | No client -> server channel, and therefore no rate limiter | **Deliberate, and now visible rather than latent.** Phase 1 has no client-initiated verb: both interactive verbs are server-owned `ProximityPrompt`s, so the client never sends intent. `Remotes.Action`, `RateLimiter.luau` and `Config.Net.MAX_ACTIONS_PER_10_SECONDS` were built for that future verb and then deleted, so nothing in the tree is inert | The first client verb (fishing in Phase 2, a quest hand-in in Phase 3) adds the single audited channel, the token bucket and the per-10-second budget together; the removed implementation is in `git log` |
-| Economy values are `[SIM]`, not playtest-validated | Open. The arithmetic in [§9](#9-economy-model) is reproducible; the *income* assumption (~11 pickups/min) is the soft number | Playtest, then edit `Config.Economy` / `Config.Gems` only |
+| Economy values are `[SIM]`, not playtest-validated | Open. The arithmetic in [§9](#9-economy-model) is reproducible; the *income* assumption (~10 pickups/min) is the soft number | Playtest, then edit `Config.Economy` / `Config.Gems` only |
 | No behavioural tests | Open. The gate is strictly static: types, syntax, formatting. Nothing simulates a session — demonstrated the hard way: `PlayerDataService` read `acquire`'s session wrapper as if it were the save, which type-checks behind a single `:: any` cast and would have thrown on every join with no character ever spawning. Removing the cast made the analyzer report it instantly, so the real lesson is narrower and more useful: **a cast is exactly where the gate goes blind** | A phase-2 harness needs the engine; keep gameplay decisions in pure functions (`Util`, `GemCatalog.expectedValue`) so more of them are testable offline. Until then, Track A in [`PHASE1_PLAYTEST.md`](PHASE1_PLAYTEST.md) is the only behavioural check that exists |
 | No audio | Deliberate (asset-free) | `EffectFx` is the natural home |
 | Desktop-only UI layout | Open — the HUD assumes a landscape desktop viewport | `Theme`'s widget factories are the single choke point for a responsive pass |
@@ -774,14 +785,14 @@ Expected output window (server):
 
 ```
 [CursedGems] persistence: DataStore handle acquired
-[CursedGems] GemSystem online: NN legal positions, target pool 12.
+[CursedGems] GemSystem online: NN legal positions, target pool 16.
 [CursedGems] SummonSystem online: 4 altars.
-[CursedGems] CurseSystem online: base drain 10/min, 2.5 per creature.
+[CursedGems] CurseSystem online: base drain 7.5/min, 2.5 per creature.
 [CursedGems] StateSync online at 4 Hz.
-[CursedGems] 0.1.0-phase1 ready in NN ms: NN gem positions, 4 summon altars, 10/5/2.5 gems per minute base/mercy/shrine.
+[CursedGems] 0.1.0-phase1 ready in NN ms: NN gem positions, 4 summon altars, 7.5/3.75/1.875 gems per minute base/mercy/shrine.
 [CursedGems] Load failed for user NN (Studio access to APIs is not allowed); using memory-only storage for the rest of this server (progress will not persist).
 [CursedGems] JOIN Player1 | first ever session | persisted no | gems 15
-[CursedGems] SESSION Player1 | 12.4 min | collected 143 (11.5/min P1) | cursed 11 (7.7% P5) | spent 50 (0.35 of collected P6) | summons 3 (P4) | creatures 3 (P2) | cursed 6.1% of session (P3) | gems 88 | persisted no
+[CursedGems] SESSION Player1 | 12.4 min | collected 143 (9.5/min P1) | cursed 11 (7.7% P5) | spent 50 (0.35 of collected P6) | summons 3 (P4) | creatures 3 (P2) | cursed 6.1% of session (P3) | gems 88 | persisted no
 ```
 
 In an unpublished place the first read fails and the store drops to memory-only for the rest
@@ -819,7 +830,7 @@ and the shared gem field.
 | Drain feel, upkeep curve, mercy rule, grace, shrine safety | `Config.Economy` |
 | Summon price, reveal timing, prompt hold, witness radius | `Config.Summon` |
 | Curse thresholds and the movement penalty | `Config.Curse` |
-| Map size, seed, spawn, shrine, cave, scatter counts, gem ring | `Config.World` |
+| Map size, seed, spawn, shrine, cave, scatter counts, gem zones | `Config.World` |
 | Save cadence, lock timeout, store name, memory fallback | `Config.Data` |
 | Sync rate and the position slack | `Config.Net` |
 | Colours, fonts, corners, widget styling | `Theme.luau` |

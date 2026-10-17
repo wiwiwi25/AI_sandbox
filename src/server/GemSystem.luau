@@ -19,9 +19,16 @@
     guarantees two gems are never crowded together, which is the bug such a
     loop usually hides.
 
+    Those legal positions now live in four pockets (Config.World.GEM_ZONES).
+    Respawn is deliberately NOT bound to a zone: a zone that refilled itself
+    would make standing still the best income in the game. The draw below is
+    uniform over all four, which is what keeps movement mandatory.
+
     Gems are pooled. The pool holds the Part, its PointLight and its
-    ProximityPrompt; acquiring one only re-colours it for the rolled kind. Gems
-    respawn roughly every six seconds, so this keeps instance churn at zero.
+    ProximityPrompt; acquiring one only re-colours it for the rolled kind. A
+    pick-up reserves that index for 5-8 s before it is legal again, so a
+    collected gem genuinely leaves the field while turnover still costs zero
+    instances.
 
     The Pool handle below is created at module scope with no type annotation on
     purpose: its type is inferred from Pool.new, which is what lets the module
@@ -72,6 +79,10 @@ gemsFolder.Name = "ActiveGems"
 local spawnPoints: { Vector3 } = {}
 local activeByPart: { [BasePart]: GemRecord } = {}
 local occupiedIndices: { [number]: boolean } = {}
+-- Indices whose gem was just collected and which are serving their respawn
+-- delay. Kept separate from occupiedIndices because a cooling index is neither
+-- "has a gem" nor "free to take": it is reserved to the gem that was there.
+local coolingIndices: { [number]: boolean } = {}
 local pendingRespawn: { PendingRespawn } = {}
 local lastCollectAt: { [Player]: number } = {}
 local rng = Random.new(Config.World.SEED + 991)
@@ -179,9 +190,15 @@ local function spawnAt(index: number)
 
     activeByPart[part] = { index = index, kindId = kind.id, acquiredAt = os.clock() }
     occupiedIndices[index] = true
+    coolingIndices[index] = nil
 end
 
-local function despawn(part: BasePart, respawnDelay: number)
+-- `respawnDelay` nil retires the slot for good (the bulk shrink when players
+-- leave). A number reserves the index for that long, which is the entire
+-- feature: without the reservation the sweep below sees "the pool is short" and
+-- refills from some other point on its next tick, which is indistinguishable
+-- from the gem respawning instantly. That was the reported bug.
+local function despawn(part: BasePart, respawnDelay: number?)
     local record = activeByPart[part]
     if not record then
         return
@@ -193,13 +210,19 @@ local function despawn(part: BasePart, respawnDelay: number)
     CollectionService:RemoveTag(part, GEM_TAG)
     gemPool:release(part)
 
-    table.insert(pendingRespawn, { index = record.index, at = os.clock() + respawnDelay })
+    if respawnDelay then
+        coolingIndices[record.index] = true
+        table.insert(pendingRespawn, { index = record.index, at = os.clock() + respawnDelay })
+    end
 end
 
 local function pickIndex(): number?
     local free: { number } = {}
     for index = 1, #spawnPoints do
-        if not occupiedIndices[index] then
+        -- A cooling index belongs to the gem that was just collected. Handing it
+        -- out again would let a different gem appear in the same spot and hide
+        -- the delay entirely.
+        if not occupiedIndices[index] and not coolingIndices[index] then
             table.insert(free, index)
         end
     end
@@ -251,8 +274,15 @@ local function processPendingRespawns()
     local index = 1
     while index <= #pendingRespawn do
         local entry = pendingRespawn[index]
-        if entry.at <= now and activeCount() < target then
-            spawnAt(entry.index)
+        if entry.at <= now then
+            -- Refill only if the field still wants a gem; a server that emptied
+            -- out while this one was cooling would otherwise overfill. Either
+            -- way the reservation ends here, so the queue cannot leak entries
+            -- that will never fire.
+            if activeCount() < target then
+                spawnAt(entry.index)
+            end
+            coolingIndices[entry.index] = nil
             table.remove(pendingRespawn, index)
         else
             index += 1
@@ -283,14 +313,20 @@ local function reconcile()
             if count <= target then
                 break
             end
-            despawn(part, 0)
+            -- No delay: this is a retire, not a pick-up. Reserving the slot here
+            -- would put a gem straight back and undo the shrink.
+            despawn(part)
             count -= 1
         end
         return
     end
 
     if count < target then
-        for _ = 1, target - count do
+        -- Pending respawns are gems already owed to the field. Counting them is
+        -- the difference between "the pool is short" and "the pool is waiting",
+        -- and only a genuinely short pool may spawn outside the queue.
+        local deficit = target - count - #pendingRespawn
+        for _ = 1, deficit do
             local index = pickIndex()
             if not index then
                 break

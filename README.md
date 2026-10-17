@@ -8,15 +8,17 @@ drain *forever*. Collecting is therefore a difficulty dial the player turns them
 and the drain rate on the HUD is the readout of how far they turned it.
 
 ```
-drain/min = (10 + 2.5 x creatures)  x  mercy  x  shrine
+drain/min = (7.5 + 2.5 x creatures)  x  mercy  x  shrine
 ```
 
 At 0 creatures the balance grows by `+5/min`, 2 creatures is break-even, and 4 or more
 loses. The player chooses which of those states they are in, one summon at a time.
 
-**Status — `0.1.0-phase1`:** code-complete, and the offline gate passes. The acceptance
-playtest has **not** been run yet, so every economy number is still a design assumption
-(`[SIM]`) rather than a measurement. Changing that is what
+**Status — `0.1.0-phase1`:** code-complete, and the offline gate passes. One developer
+playtest round has been run and its feedback has shipped (wider, more distant gem pockets,
+a respawn delay that is actually enforced, and the HUD moved clear of the chat window).
+The acceptance playtest has **not** been run, so every economy number is still a design
+assumption (`[SIM]`) rather than a measurement. Changing that is what
 [`docs/PHASE1_PLAYTEST.md`](docs/PHASE1_PLAYTEST.md) exists for.
 
 ---
@@ -71,13 +73,14 @@ plugin are in it. [`tools/README.md`](tools/README.md) lists exactly what the ga
 expects and where each file comes from. Until they are in place, `check.ps1` stops with
 `Missing toolchain component`.
 
-## The three documents
+## The documents
 
 | Document | Answers |
 |----------|---------|
 | [`docs/PHASE1_ARCHITECTURE.md`](docs/PHASE1_ARCHITECTURE.md) | **How it is built.** Trust boundary, replication, economy arithmetic, persistence, world generation, invariants, known gaps. The authority on what is implemented. |
 | [`docs/PHASE1_DESIGN.md`](docs/PHASE1_DESIGN.md) | **Why the numbers are what they are**, and what the player is meant to feel. |
-| [`docs/PHASE1_PLAYTEST.md`](docs/PHASE1_PLAYTEST.md) | **How it gets tested.** Track A (17 technical checks: one player, unpublished Studio), then Track B (an outsider actually playing it), plus the verdict bands that decide what ships. |
+| [`docs/PHASE1_PLAYTEST.md`](docs/PHASE1_PLAYTEST.md) | **How it gets tested.** Track A (18 technical checks: one player, unpublished Studio), then Track B (an outsider actually playing it), plus the verdict bands that decide what ships. |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | **Where it is going.** The version ladder: v6-v8 reserved, v9 (Treasure Zones and Tiered Gems) specified as design only. |
 
 ## Layout
 

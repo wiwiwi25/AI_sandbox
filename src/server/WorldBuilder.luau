@@ -19,9 +19,15 @@
     can drift away from this file.
 
     Output contract:
-      World/Geometry       ground, walls, shrine, cave, trees, rocks, spawn
-      World/GemSpawns      invisible marker at every legal gem position
+      World/Geometry       ground, walls, shrine, cave, trees, rocks, zone rims, spawn
+      World/GemSpawns      invisible marker at every legal gem position (4 x 11)
       World/Pens           summon pens, one pedestal plus prompt anchor each
+
+    Gem positions are generated per Config.World.GEM_ZONES: every zone must fill
+    with GEM_POINTS_PER_ZONE legal points, so a zone that comes up short is a loud
+    warning rather than a quietly thinner field. Each pocket is then dressed with
+    its own rim, which is what makes it read as somewhere to go instead of a patch
+    of open ground.
 
     Ordering detail that matters: gem positions are generated FIRST and props are
     scattered around them afterwards. That way a tree can never end up on top of
@@ -195,39 +201,47 @@ local function applyLighting()
 end
 
 local function generateGemSpawnPoints(rng: Random, isBlocked: (Vector3) -> boolean): { Vector3 }
-    local target = math.max(Config.Gems.POOL_MAX + 10, 42)
-    local inner = Config.World.GEM_FIELD_INNER_RADIUS
-    local outer = Config.World.GEM_FIELD_OUTER_RADIUS
+    local perZone = Config.World.GEM_POINTS_PER_ZONE
+    local spacing = Config.Gems.MIN_GEM_SPACING
     local height = Config.World.GROUND_Y + Config.Gems.GEM_HEIGHT
     local points: { Vector3 } = {}
 
-    local attempts = 0
-    local maxAttempts = target * Config.Gems.MAX_SPAWN_ATTEMPTS
-    while #points < target and attempts < maxAttempts do
-        attempts += 1
+    for zoneIndex, zone in ipairs(Config.World.GEM_ZONES) do
+        local accepted = 0
+        local attempts = 0
+        local maxAttempts = perZone * Config.Gems.MAX_SPAWN_ATTEMPTS
 
-        local angle = rng:NextNumber() * math.pi * 2
-        -- sqrt() makes the sample area-uniform. Without it, points pile up near
-        -- the inner radius and the outer field stays visibly empty.
-        local radius = inner + math.sqrt(rng:NextNumber()) * (outer - inner)
-        local candidate = Vector3.new(math.cos(angle) * radius, height, math.sin(angle) * radius)
+        while accepted < perZone and attempts < maxAttempts do
+            attempts += 1
 
-        if not isBlocked(candidate) then
-            if not tooCloseToAny(candidate, points, Config.Gems.MIN_GEM_SPACING) then
+            local angle = rng:NextNumber() * math.pi * 2
+            -- sqrt() makes the sample area-uniform. Without it, points pile up in
+            -- the middle of the zone and the rim stays visibly empty.
+            local radius = zone.radius * math.sqrt(rng:NextNumber())
+            local candidate = Vector3.new(
+                zone.center.X + math.cos(angle) * radius,
+                height,
+                zone.center.Z + math.sin(angle) * radius
+            )
+
+            if not isBlocked(candidate) and not tooCloseToAny(candidate, points, spacing) then
                 table.insert(points, candidate)
+                accepted += 1
             end
         end
-    end
 
-    if #points < target then
-        warn(
-            string.format(
-                "[CursedGems] Gem field accepted %d of %d positions. MIN_GEM_SPACING (%.0f) is too tight for this ring, or too much of the field is blocked.",
-                #points,
-                target,
-                Config.Gems.MIN_GEM_SPACING
+        if accepted < perZone then
+            warn(
+                string.format(
+                    "[CursedGems] Gem zone %d accepted %d of %d positions. MIN_GEM_SPACING (%.0f) is too tight for a %.0f-stud zone, or too much of it is blocked.",
+                    zoneIndex,
+                    accepted,
+                    perZone,
+                    spacing,
+                    zone.radius
+                )
             )
-        )
+        end
     end
 
     return points
@@ -429,8 +443,8 @@ local function scatterProps(
     caveCenter: Vector3,
     caveSize: Vector3
 )
-    local inner = Config.World.GEM_FIELD_INNER_RADIUS
-    local outer = Config.World.GEM_FIELD_OUTER_RADIUS
+    local inner = Config.World.PROP_FIELD_INNER_RADIUS
+    local outer = Config.World.PROP_FIELD_OUTER_RADIUS
     local groundY = Config.World.GROUND_Y
 
     local function findSpot(attempts: number, clearance: number): Vector3?
@@ -450,6 +464,15 @@ local function scatterProps(
             local blocked = false
             for _, pen in ipairs(pens) do
                 if Util.distanceXZ(candidate, pen.center) < PEN_PAD_RADIUS + 10 then
+                    blocked = true
+                    break
+                end
+            end
+            -- Zone interiors stay clear of scatter: the rim placed by buildZoneRims
+            -- is what tucks a pocket away, and a tree in the middle of one would
+            -- hide a gem without hiding the pocket.
+            for _, zone in ipairs(Config.World.GEM_ZONES) do
+                if Util.distanceXZ(candidate, zone.center) < zone.radius + 8 then
                     blocked = true
                     break
                 end
@@ -505,6 +528,85 @@ local function scatterProps(
             material = Enum.Material.Slate,
             parent = parent,
         })
+    end
+end
+
+-- Slightly tucked away, never hidden: each gem pocket gets a ring of rocks with
+-- two deliberate gaps - one facing the shrine (the way in) and one facing
+-- outward (the way on) - plus a few trees behind the rocks. This is dressing,
+-- not collision: every rim prop sits outside the legal disc, so a rim can never
+-- make a gem unreachable. The gaps are consistent rather than random because
+-- they are the shape a future treasure-trail feature would hang off.
+local function buildZoneRims(parent: Instance, rng: Random)
+    local SEGMENTS = 14
+    local GAP_HALF_ANGLE = math.rad(26)
+    local groundY = Config.World.GROUND_Y
+    local shrine = Config.World.SHRINE_POSITION
+
+    for zoneIndex, zone in ipairs(Config.World.GEM_ZONES) do
+        local center = zone.center
+        local inward = math.atan2(shrine.Z - center.Z, shrine.X - center.X)
+
+        for segment = 1, SEGMENTS do
+            local angle = (segment - 1) / SEGMENTS * math.pi * 2
+            local offsetFromInward = angle - inward
+            local toInward =
+                math.abs(math.atan2(math.sin(offsetFromInward), math.cos(offsetFromInward)))
+            local opposite = offsetFromInward - math.pi
+            local toOutward = math.abs(math.atan2(math.sin(opposite), math.cos(opposite)))
+            if toInward < GAP_HALF_ANGLE or toOutward < GAP_HALF_ANGLE then
+                continue
+            end
+
+            local rocks = 1
+            if segment % 3 == 0 then
+                rocks = 2
+            end
+
+            for rockIndex = 1, rocks do
+                local distance = zone.radius + rng:NextNumber(6, 10) + (rockIndex - 1) * 3
+                local size =
+                    Vector3.new(rng:NextNumber(4, 8), rng:NextNumber(3, 6), rng:NextNumber(4, 8))
+                makePart({
+                    name = string.format("Zone%dRimRock%d", zoneIndex, segment * 2 + rockIndex),
+                    size = size,
+                    position = Vector3.new(
+                        center.X + math.cos(angle) * distance,
+                        groundY + size.Y * 0.3,
+                        center.Z + math.sin(angle) * distance
+                    ),
+                    rotation = Vector3.new(0, rng:NextNumber(0, 360), 0),
+                    color = STONE_COLOR,
+                    material = Enum.Material.Slate,
+                    parent = parent,
+                })
+            end
+
+            if segment % 4 == 2 then
+                local distance = zone.radius + rng:NextNumber(12, 17)
+                local height = rng:NextNumber(8, 13)
+                local trunkX = center.X + math.cos(angle) * distance
+                local trunkZ = center.Z + math.sin(angle) * distance
+                makePart({
+                    name = string.format("Zone%dRimTrunk%d", zoneIndex, segment),
+                    size = Vector3.new(2.2, height, 2.2),
+                    position = Vector3.new(trunkX, groundY + height * 0.5, trunkZ),
+                    color = Color3.fromRGB(96, 68, 48),
+                    material = Enum.Material.Wood,
+                    parent = parent,
+                })
+                local canopy = rng:NextNumber(5.5, 9)
+                makePart({
+                    name = string.format("Zone%dRimCanopy%d", zoneIndex, segment),
+                    shape = Enum.PartType.Ball,
+                    size = Vector3.new(canopy * 2, canopy * 1.7, canopy * 2),
+                    position = Vector3.new(trunkX, groundY + height + canopy * 0.3, trunkZ),
+                    color = Color3.fromRGB(58, 116, 62),
+                    material = Enum.Material.Grass,
+                    parent = parent,
+                })
+            end
+        end
     end
 end
 
@@ -633,6 +735,7 @@ function WorldBuilder.build(): BuildResult
     end
 
     scatterProps(geometry, rng, gemSpawnPoints, pens, shrine, caveCenter, caveSize)
+    buildZoneRims(geometry, rng)
 
     return {
         folder = folder,

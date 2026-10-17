@@ -297,7 +297,7 @@ function PlayerDataService.applyDrain(player: Player, amount: number): number
         return data and data.gems or 0
     end
     -- Deliberately FRACTIONAL and floored at zero. Rounding to whole gems on
-    -- every tick would turn a 10/min drain into a 60/min drain, and gems must
+    -- every tick would turn an 8/min drain into a 60/min drain, and gems must
     -- never go negative or the mercy rule would read as a debt.
     local nextGems = math.max(0, data.gems - amount)
     if nextGems ~= data.gems then

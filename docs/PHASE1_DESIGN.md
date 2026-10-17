@@ -56,39 +56,75 @@ Two curves, and the whole balance is where they cross.
 | Value of a cursed gem | 5 | `Config.Gems.CURSED_VALUE` |
 | Odds | 92 / 8 | `Config.Gems.COMMON_WEIGHT` / `CURSED_WEIGHT` |
 | Expected value per pickup | **1.32** | `GemCatalog.expectedValue()` = `(92*1 + 8*5)/100` |
-| Assumed pickups per minute | ~11 | **assumption** (the soft number) |
-| Assumed income | **~15 gems/min** | 1.32 x 11, rounded for legibility |
+| Modelled pickups per minute | ~9.5 | derived below |
+| Modelled income | **~12.5 gems/min** | 1.32 x 9.5, rounded for legibility |
 
-The ~11/min figure comes from the field's geometry rather than from a playtest: gems
-are spaced at least 40 studs apart (`MIN_GEM_SPACING`), walking speed is 16
-studs/s, so a perfect route is about 2.5 s per gem (~24/min). A real player explores,
-backtracks and misses gems, so the model assumes **under half** of the theoretical
-maximum. That factor is the one number a playtest should replace first.
+The figure is derived from the map geometry rather than from a playtest, and it was
+re-derived in the Phase 1 tuning pass after the first derivation turned out to be
+optimistic by about 35%. The old model read `MIN_GEM_SPACING` (40) as if it were the
+realised spacing; sampling the actual placement put the nearest *live* gem about 58
+studs away rather than 40, so the theoretical maximum was 15.8 pickups/min instead of
+24. That is why the promised `+5/min` at zero creatures was really `-0.4/min`.
+
+The current model walks the four gem zones (`Config.World.GEM_ZONES`: 50-stud discs
+108 studs from the shrine, 16 legal points each). With one player the pool is sixteen
+gems, so four of the sixteen points in a zone hold one, and a gem sits about 24 studs
+from any spot in the zone. That is sampled from the real generator rather than assumed:
+the mean distance to the nearest of the four closest gems is 23-25 studs across seeds,
+and sampling the placement is what caught the original error above. At 22 studs/s a
+pickup costs 24 / 22 + 0.15 s of prompt hold = 1.24 s. Neighbouring zones are 152.7
+studs apart, so a four-zone circuit costs 4 x (6.94 + 4 x 1.24) = 47.6 s for the sixteen
+live gems: a theoretical 20.2 pickups/min. A real player explores, backtracks and misses
+gems, so the model keeps **under half** of that maximum: 0.474 gives 9.5 pickups/min, or
+12.5 gems/min.
+
+The 0.474 factor is the one number in this chain that is calibrated rather than
+measured: it is set so that a circuit pays the published income, which is what makes the
+base drain land on the `+5/min` column. That is a target, not evidence, which is why P1
+exists: if the measured factor comes back lower, the factor moves and the base drain
+moves with it, in that order.
+
+The playtest pass changed the geometry, not the model. Widening the pockets from 34 to
+50 studs and pushing them from 86 to 108 studs out lengthens every travel term; keeping
+the pool at twelve would have dropped income to 10.2 gems/min, which forces the base
+drain down to 5.2 and stretches the 15-to-0 countdown from two minutes to nearly three.
+Adding one gem per pocket costs nothing and holds density - and therefore the felt loop -
+where it was. That is why `POOL_BASE` and `POOL_MIN` rose with the radius: a bigger pocket
+with the same number of gems in it is a worse pocket, not a more generous one.
 
 ### Drain
 
 | Quantity | Value | Source |
 |----------|------:|--------|
-| Base drain | 10/min | `BASE_DECAY_PER_MINUTE` |
+| Base drain | 7.5/min | `BASE_DECAY_PER_MINUTE` |
 | Per creature | 2.5/min | `UPKEEP_PER_CREATURE_PER_MINUTE` |
 | Mercy multiplier | 0.5x below 5 gems | `MERCY_THRESHOLD` / `MERCY_MULTIPLIER` |
 | Shrine multiplier | 0.25x within 48 studs | `SHRINE_SAFE_RADIUS` / `SHRINE_DECAY_MULTIPLIER` |
 | Spawn grace | no drain at all for 60 s | `SPAWN_GRACE_SECONDS` |
 
 ```
-drain/min = (10 + 2.5 x creatures) x mercy x shrine
+drain/min = (7.5 + 2.5 x creatures) x mercy x shrine
 ```
 
 ### Where they cross
 
-| Creatures owned | Drain/min | Net/min vs ~15 income | What the player is doing |
-|----------------:|----------:|----------------------:|--------------------------|
-| 0 | 10 | **+5** | Banking gems, hunting the jackpot |
-| 1 | 12.5 | +2.5 | Comfortable |
-| 2 | 15 | **0** | Break-even: this is the designed stable state |
-| 3 | 17.5 | −2.5 | Working for the pets |
-| 4 | 20 | −5 | Every creature now costs the player |
-| 6 | 25 | −10 | Deliberate over-commitment; needs shrine + mercy to survive |
+| Creatures owned | Drain/min | Net/min vs ~12.5 income | What the player is doing |
+|----------------:|----------:|------------------------:|--------------------------|
+| 0 | 7.5 | **+5** | Banking gems, hunting the jackpot |
+| 1 | 10 | +2.5 | Comfortable |
+| 2 | 12.5 | **0** | Break-even: this is the designed stable state |
+| 3 | 15 | −2.5 | Working for the pets |
+| 4 | 17.5 | −5 | Every creature now costs the player |
+| 6 | 22.5 | −10 | Deliberate over-commitment; needs shrine + mercy to survive |
+
+Base drain has now moved twice: 10 -> 8 in the Phase 1 pass, then 8 -> 7.5 once
+playtesting widened the pockets. Both moves read backwards until the income figure is in
+view. The first was repairing an error: with the ring geometry a player at zero creatures
+was already losing 0.4 gems/min, and one with a pet was losing about 3. The second is a
+clean trade: the pockets got bigger and further apart, so the same circuit pays 12.5
+instead of 13.0, and the base follows it down by the same amount. The invariant worth
+defending is the column, not the absolute drain: **zero creatures nets +5/min, two
+creatures is exactly break-even.**
 
 The curve is **linear on purpose.** A linear upkeep is predictable by inspection:
 one look at the drain number tells the player how many creatures they can carry, and
@@ -172,9 +208,13 @@ the state the player will spend the most time thinking about.
 
 | | Normal | Cursed |
 |---|---:|---:|
-| Walk speed | 16 | **10** |
+| Walk speed | 22 | **14** |
 | Jump power | 50 | **38** |
 | Damage over time | none | **none** |
+
+Both speeds were raised in the Phase 1 pass (16/10 to 22/14). The ratio is what the
+player actually feels, so it was preserved (0.636 now, 0.625 before): raising normal
+speed while leaving cursed speed at 10 would have silently made the curse far harsher.
 
 The penalty is a *cost* (you move slowly, so you cannot farm), not a *timer* (you are
 about to die). Timer-death is legible to an adult and reads as unfair to a young
@@ -215,7 +255,7 @@ What *is* shared:
 
 | Shared thing | Range | Why it exists |
 |--------------|-------|---------------|
-| The gem field | whole map (ring 60-240 studs from the shrine) | Competition for a resource is the cheapest social tension there is, and it costs no extra systems. |
+| The gem field | four pockets (50-stud discs, 108 studs from the shrine) | Competition for a resource is the cheapest social tension there is, and it costs no extra systems. |
 | The shrine | 48-stud safe radius, 0.25x drain | The one place players reliably stand still next to each other. It is the map's social hub *because* it is the map's safe zone, not in spite of it. |
 | Summon reveals | 120 studs (`BROADCAST_RADIUS`) | Summoning is the game's achievement moment, and a pen field only reads as a shared one if other players actually notice — so witnesses in range get the same reveal, including the same `creatureId`. |
 | The collection panel | per player | Personal, and shown as silhouettes to its owner. |
@@ -238,7 +278,7 @@ number answers. The procedure and the recording sheet live in
 
 | # | Prediction | Measure | If it fails |
 |---|------------|---------|-------------|
-| P1 | ~11 pickups/min, i.e. ~15 gems/min income | `stats.gemsCollected` / session minutes | Below ~8/min: the income model is wrong. **This is the first number to replace** — every other balance decision rests on it. Fix in `Config.Gems` (value) before touching the drain. |
+| P1 | ~9.5 pickups/min, i.e. ~12.5 gems/min income | `stats.gemsCollected` / session minutes | Below ~7/min: the income model is wrong. **This is the first number to replace** — every other balance decision rests on it. Fix in `Config.Gems` (value) before touching the drain. |
 | P2 | Most sessions end owning 1-3 creatures | creatures per save at `lastSeen` | Clustered at 0-1: upkeep or price is too punishing, or the first purchase is not discoverable. Clustered at 5+: the dial has no bite — raise `UPKEEP_PER_CREATURE_PER_MINUTE`. |
 | P3 | Time cursed is a small share of a session | `stats.cursedSeconds` / session length | Above ~30%: the drain is a treadmill rather than a tension. Re-tune mercy, shrine radius, then income — in that order. |
 | P4 | Every first session contains a summon | `stats.summons` per save | Many saves at 0 summons: the onboarding money is right but the *path* is not — check that the altar is discoverable from the spawn point. |
@@ -250,7 +290,7 @@ number answers. The procedure and the recording sheet live in
 
 ## 8. Phase 2 candidates
 
-Ordered by how much they would change the design rather than by how easy they are.
+Ordered by how much they would change the design rather than by how easy they are. Long-range sequencing lives in [`ROADMAP.md`](ROADMAP.md); this section is the Phase 1 view of it.
 
 1. **More creatures and more gem kinds** — pure content, no model change. The
    catalogue and the collection panel already scale; the only decision is whether
@@ -291,7 +331,7 @@ Ordered by how much they would change the design rather than by how easy they ar
   failure state. "Cursed" reads as *bad*, so a new player may avoid the 5x pickup
   precisely because it sounds dangerous. If P5 fails, rename the gem (for example
   "Rift Gem") rather than reweighting the table.
-* **O2 — the income assumption.** ~11 pickups/min is a model, not a measurement.
+* **O2 — the income assumption.** ~10 pickups/min is a model, not a measurement.
   Everything in [§2](#2-the-model) moves if it is wrong.
 * **O3 — is one session enough to learn upkeep?** The reveal shows a *nice* thing and
   the drain rises. A player may well attribute the rising drain to something else the
