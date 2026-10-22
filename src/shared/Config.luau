@@ -83,11 +83,14 @@ Config.Gems = {
     -- zones. A fixed respawn turns farming into a memorized route (a chore);
     -- a global draw also stops one pocket from feeding its own camper.
     --
-    -- The delay is real: a collected slot is RESERVED for 5-8 s, so the field
-    -- visibly thins and the gem does not come straight back (see GemSystem).
-    -- It is deliberately non-binding for a player walking the circuit - sixteen
-    -- gems refilling in five to eight seconds outpace anyone - and binding for a
-    -- player standing in one pocket, which is the point.
+    -- The delay is real: a collected slot is RESERVED for 8-12 s (was 5-8), so
+    -- the field visibly thins and the gem does not come straight back (see
+    -- GemSystem). It is still non-binding for a player walking the circuit -
+    -- sixteen gems take about 100 s of walking to turn over, and the first
+    -- refills land in ten - and binding for a player standing in one pocket,
+    -- which is the point. The longer window costs about 0.55 live gems at the
+    -- tuned pickup rate (14.4 of 16 visible instead of 15.0): density absorbs
+    -- the change, so pool size and the drain were deliberately left alone.
     --
     -- Pool size is now an INCOME knob, not just a liveliness knob. Gem density
     -- is what the economy model depends on, so widening the pockets without
@@ -97,8 +100,8 @@ Config.Gems = {
     POOL_PER_PLAYER = 4,
     POOL_MIN = 16,
     POOL_MAX = 44,
-    RESPAWN_MIN_SECONDS = 5,
-    RESPAWN_MAX_SECONDS = 8,
+    RESPAWN_MIN_SECONDS = 8,
+    RESPAWN_MAX_SECONDS = 12,
 
     -- Placement constraints: no two gems crowd one spot, and nothing spawns on
     -- top of a player. Spacing defines a POCKET rather than a field cell: at 13

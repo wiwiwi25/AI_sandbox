@@ -443,7 +443,7 @@ is a function of how far the average gem is, so multiplying pocket area without 
 gems divides income (measured: twelve gems in the widened pockets pays 10.2 gems/min
 instead of 12.5).
 
-A pick-up reserves its slot for 5-8 s (`RESPAWN_MIN_SECONDS`/`RESPAWN_MAX_SECONDS`, plus
+A pick-up reserves its slot for 8-12 s (`RESPAWN_MIN_SECONDS`/`RESPAWN_MAX_SECONDS`, plus
 up to one 0.5 s scheduler tick) before the index is legal again, then respawns at a
 freshly randomised point.
 Randomised delay **and** location on purpose: a fixed respawn turns farming into a

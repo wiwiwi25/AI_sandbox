@@ -26,7 +26,7 @@
 
     Gems are pooled. The pool holds the Part, its PointLight and its
     ProximityPrompt; acquiring one only re-colours it for the rolled kind. A
-    pick-up reserves that index for 5-8 s before it is legal again, so a
+    pick-up reserves that index for 8-12 s before it is legal again, so a
     collected gem genuinely leaves the field while turnover still costs zero
     instances.
 
