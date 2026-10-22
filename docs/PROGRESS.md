@@ -1,0 +1,151 @@
+# CursedGems — progress and handoff
+
+A working note, not a design document. It exists so a fresh session can pick up without
+re-reading twelve files: what changed last, what the numbers are, what was decided and
+why, and what is still open. The authoritative documents are
+[`PHASE1_ARCHITECTURE.md`](PHASE1_ARCHITECTURE.md),
+[`PHASE1_DESIGN.md`](PHASE1_DESIGN.md), [`PHASE1_PLAYTEST.md`](PHASE1_PLAYTEST.md) and
+[`ROADMAP.md`](ROADMAP.md); where this file and those disagree, they win.
+
+**Last updated:** 2026-10-22, after commit `500cdaf`.
+
+---
+
+## 1. Where the tree stands
+
+`.\check.ps1` passes (stylua clean, 26 files compile, luau-lsp 0 diagnostics), the offline
+respawn probe passes with zero failed checks, and `rojo build` produces
+`build/CursedGems.rbxlx` (about 205 KB). Nothing is half-finished: the working tree is
+clean and every commit below is self-contained.
+
+| Commit | Change |
+|--------|--------|
+| `860cab5` | Respawn window 5-8 s → **8-12 s** (`RESPAWN_MIN_SECONDS`/`RESPAWN_MAX_SECONDS`), docs synced |
+| `500cdaf` | Shrine and pen tiles lifted clear of the ground: the z-fight is gone |
+
+Phase 1 status is unchanged in the only sense that matters to the roadmap: **code-complete,
+playtest 2 not yet run by a human.** No roadmap row moved.
+
+---
+
+## 2. Respawn window: 5-8 s → 8-12 s
+
+`Config.Gems.RESPAWN_MIN_SECONDS = 8`, `RESPAWN_MAX_SECONDS = 12`. `GemSystem` is the
+only reader and needed no change; the probe harness reads both bounds from Config, so it
+retuned itself.
+
+**Why no pool or decay re-tune.** A reservation of length `L` at a pickup rate `λ` leaves
+`λ·L` slots cooling at steady state. Phase 1 tuning puts a solo player at 9.5 pickups/min
+(`λ = 0.158/s`), so the window moves from about 1.0 cooling slots to about 1.6:
+
+| | 5-8 s | 8-12 s |
+|---|---|---|
+| mean reservation | 6.5 s | 10.0 s |
+| slots cooling at 9.5 picks/min | ~1.0 | ~1.6 |
+| live gems of 16 | ~15.0 | **~14.4** |
+| density | reference | −3.7% |
+| income, 1p / 4p | reference | −1% / −4% |
+| break-even creatures | 2.0 | ~1.8 |
+
+The income deltas sit inside the ±10% band one playtest cannot resolve, so the field
+absorbs the change instead of the drain. Retuning the pool upward to "restore" density
+would have made the map pay *more* per pickup (the widened-pocket effect documented in
+`PHASE1_ARCHITECTURE.md` §4), i.e. it would have bought visibility with inflation.
+
+**Evidence** (offline probe, shipped modules, driven every 0.05 s):
+
+```
+cursed:  n=16  min=8.10s  mean=10.14s  max=12.00s  under-8s=0
+common:  n=16  min=8.05s  mean= 9.73s  max=11.95s  under-8s=0
+traffic Common: n=73  min=8.10s  mean= 9.87s  max=12.05s  under-8s=0
+traffic Cursed: n= 7  min=8.10s  mean=10.31s  max=12.05s  under-8s=0
+Traffic: 80 pickups, 0 unresolved, final active 24
+Total failed checks: 0
+```
+
+`max` landing at 12.00 s rather than above it is correct: the drawn delay is clamped to the
+ceiling and the part appears on the next scheduler tick, so the ceiling is inclusive.
+
+---
+
+## 3. Altar z-fight: it was never the grass
+
+The diagnosis is worth keeping because the obvious hypothesis was wrong. `Shrine/Pad`
+(opaque marble, 52 studs across) and `Shrine/PadRing` (translucent neon, 58 studs across)
+both had their **top face at exactly y = 0.60**, overlapping over about 2,120 stud². Two
+surfaces at identical depth fight for the same pixels, and because the ring is translucent
+the shimmer moved with the camera. Nothing else on the altar was coplanar.
+
+| Part | Before | After | Top face now |
+|------|--------|-------|--------------|
+| `Shrine/Pad` | `GROUND_Y + 0.30` | `GROUND_Y + 0.45` | 0.75 (was 0.60) |
+| `Shrine/PadRing` | `GROUND_Y + 0.35` | `GROUND_Y + 0.40` | 0.65 (was 0.60) |
+| `Pens/Pen1-4Pad` | `GROUND_Y + 0.25` | `GROUND_Y + 0.40` | 0.65 (was 0.50) |
+
+Both shrine discs now clear the grass by 0.15, and their up-faces are 0.10 apart with the
+neon ring *below* the marble lip, so no coplanar pair is left anywhere on the map.
+`GROUND_Y` is 0, so the numbers above are absolute.
+
+Pedestals, prompts, gem heights and every marker are untouched. That is safe because all
+gameplay distance in `src/` goes through `Util.distanceXZ` (which ignores Y) and there are
+no raycasts in the tree — the change is purely visual.
+
+---
+
+## 4. Open decisions and unresolved observations
+
+1. **The shrine fix has not been seen in Studio.** The geometry is verified (three new Y
+   expressions present in the built place, `GROUND_Y = 0`, no coplanar pair remaining by
+   arithmetic), but "no shimmer" is a human judgement. It is the first thing to look at in
+   the next session.
+2. **The traffic live-count does not match the analytic model, and it was not chased.**
+   The probe reported `mean 17.62 of 24` gems visible (73%) at a synthetic 1 pickup/s with
+   3 players. The analytic steady state for that rate is ~14 of 24 (58%); the *real*
+   1-player case this change was tuned on is ~14.4 of 16 (90%). The harness drives
+   `forceReconcile` every 0.05 s while the shipped scheduler resolves one tick per 0.5 s,
+   so the surplus is probably batching — but that is a hypothesis, not a measurement. The
+   probe certifies the delay bounds and the `active + pending == target` invariant; it does
+   not certify density. Do not quote 73% as a density figure.
+3. **Version string.** `Config.VERSION` is still `0.1.0-phase1` after two behaviour changes.
+   Decide whether playtest-2 fixes bump the patch number or whether Phase 1 keeps one label
+   until it is signed off.
+4. **Cursed-gem share.** The traffic sample is roughly 91/9 common/cursed, matching the
+   shipped 92/8 roll; the seven cursed samples are consistent with the common ones but are
+   too few to say anything about the cursed tail.
+
+---
+
+## 5. Next steps, in order
+
+1. Playtest 2 in Studio: run [`PHASE1_PLAYTEST.md`](PHASE1_PLAYTEST.md) start to finish. A6
+   now reads 8-12 s instead of 5-8 s; watch one empty spot twice to confirm the index really
+   stays reserved. Add the altar shimmer check while standing on the pad and orbiting.
+2. If a shimmer is still visible in Studio it is *not* the pad/ring pair, which is now
+   provably separated — look at `Beacon`, the pedestals and the prop scatter before
+   touching the pads again.
+3. Record the results in the playtest sheet, then move the ROADMAP §1 row that playtest 2
+   unblocks. Nothing else in the tree is waiting on this session.
+
+---
+
+## 6. How to re-verify without Studio
+
+```powershell
+.\check.ps1                                                      # stylua + sourcemap + compile + analyze
+powershell -ExecutionPolicy Bypass -File build\_run_probe.ps1     # respawn probe, offline
+& 'tools\rojo\rojo.exe' build default.project.json -o build\CursedGems.rbxlx
+```
+
+`rojo` is not on PATH — always call `tools\rojo\rojo.exe`. The probe injects the real
+`src/` modules into `build\_cursed_respawn_run.luau` on every run, so it cannot test a stale
+copy. `build/` is gitignored scratch space; `sourcemap.json` is committed and regenerated
+by `check.ps1`.
+
+## 7. Working rules (as agreed)
+
+- One change per commit, committed only once it is tested and green. Never commit
+  unfinished work.
+- Any commit that moves income updates the net table in the same commit (`ROADMAP.md`
+  rule 2).
+- At roughly 120k tokens of context, stop, write this file, commit it, and start a fresh
+  session.

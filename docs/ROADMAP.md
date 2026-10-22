@@ -191,5 +191,6 @@ income updates the net table in the same commit - rule 2 at the top of this file
 
 See also: [`PHASE1_DESIGN.md`](PHASE1_DESIGN.md) (balance and reasoning),
 [`PHASE1_ARCHITECTURE.md`](PHASE1_ARCHITECTURE.md) (code contracts),
-[`PHASE1_PLAYTEST.md`](PHASE1_PLAYTEST.md) (how the numbers get replaced by evidence).
+[`PHASE1_PLAYTEST.md`](PHASE1_PLAYTEST.md) (how the numbers get replaced by evidence),
+[`PROGRESS.md`](PROGRESS.md) (current state and open decisions).
 
