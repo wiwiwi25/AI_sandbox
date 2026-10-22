@@ -7,7 +7,7 @@ why, and what is still open. The authoritative documents are
 [`PHASE1_DESIGN.md`](PHASE1_DESIGN.md), [`PHASE1_PLAYTEST.md`](PHASE1_PLAYTEST.md) and
 [`ROADMAP.md`](ROADMAP.md); where this file and those disagree, they win.
 
-**Last updated:** 2026-10-22, after commit `84f7f81` plus the uncommitted gem-respawn fix in §4.
+**Last updated:** 2026-10-22, after commit `1544ff4`.
 
 ---
 
@@ -16,15 +16,14 @@ why, and what is still open. The authoritative documents are
 `.\check.ps1` passes (stylua clean, 26 files compile, luau-lsp 0 diagnostics), both
 offline probes (respawn, countdown) pass with zero failed checks, and `rojo build`
 produces `build/CursedGems.rbxlx` (about 211 KB). Nothing is half-finished: every
-commit below is self-contained, and the one change on top of them (§4, the respawn
-destination) is finished and probe-verified, waiting only for a Studio look before it is
-committed.
+commit below is self-contained, gate-green and probe-green.
 
 | Commit | Change |
 |--------|--------|
 | `860cab5` | Respawn window 5-8 s → **8-12 s** (`RESPAWN_MIN_SECONDS`/`RESPAWN_MAX_SECONDS`), docs synced |
 | `500cdaf` | Shrine and pen tiles lifted clear of the ground: the z-fight is gone |
 | `84f7f81` | HUD countdown projected from the live clock instead of redrawn from a floored balance (§3) |
+| `1544ff4` | A respawn places its gem on another point in another pocket, never the spot just collected (§4) |
 
 Phase 1 status is unchanged in the only sense that matters to the roadmap: **code-complete,
 playtest 2 not yet run by a human.** No roadmap row moved.
@@ -213,8 +212,9 @@ part of the gate.
 4. Watch one spot twice in a row (A6 in the playtest sheet): the 8-12 s reservation still
    behaves as it did in §2.
 
-**Uncommitted at the time of writing.** Gate green, probe green, place rebuilt; waiting for
-the Studio look above.
+**Committed as `1544ff4`** ("fix(gems): respawn on a different point outside the collected
+gem's pocket") with the four doc updates. The checks above are the ones that shipped; the
+Studio items stay on the list until playtest 2 is run for real (§7).
 
 ---
 
