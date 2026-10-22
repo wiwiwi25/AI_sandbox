@@ -5,9 +5,12 @@
     The only place the player reads the game's single most important number.
 
     Everything here is a pure function of ClientState.get(). The HUD keeps no
-    independent copy of the balance and runs no simulation of its own, because
-    the two would eventually disagree, and a gem counter that argues with the
-    server is worse than no counter at all.
+    independent copy of the balance and runs no economy of its own, because the
+    two would eventually disagree, and a gem counter that argues with the server
+    is worse than no counter at all. The one value it projects between snapshots
+    is the countdown, and even that is not a second economy: it is
+    `gems - rate * age` at the rate the server itself sent, so a rate change
+    corrects it on the next 4 Hz tick (see ClientState.remainingSeconds).
 
     What it shows, and why:
 
@@ -33,6 +36,7 @@
 ]]
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local Shared = require(script.Parent.Imports)
 local Config = Shared.Config
@@ -550,6 +554,58 @@ local function handleFeedback(payload: any)
     end
 end
 
+-- The countdown is the one value on this HUD that has to move continuously: it
+-- is a rate, not an event. Drawn from the snapped balance it advanced in steps
+-- of 60/drain seconds - eight of them at the base drain - so it sat still and
+-- then lurched. Drawn from ClientState.remainingSeconds() it is projected
+-- between snapshots and decrements one second at a time.
+--
+-- The writes are guarded on the rendered string: Heartbeat calls this sixty
+-- times a second and the text changes once, so the other fifty-nine calls are a
+-- comparison and a table read.
+local lastCountdownText = ""
+local lastCountdownColor: Color3? = nil
+
+local function paintCountdown()
+    local w = widgets
+    if not w then
+        return
+    end
+
+    local state = ClientState.get()
+
+    local text: string
+    local color: Color3
+
+    if state.gems <= 0 then
+        text = "empty - grab a gem"
+        color = Theme.Color.danger
+    elseif state.grace > 0 then
+        -- Drain pauses while the shield is up, so quoting a countdown during
+        -- grace would be a lie about the number the player watches most closely.
+        text = "drain resumes when the shield drops"
+        color = Theme.Color.good
+    else
+        local seconds = ClientState.remainingSeconds()
+        if seconds then
+            text = string.format("runs dry in %s", formatDuration(seconds))
+            color = Theme.Color.muted
+        else
+            text = "holding steady"
+            color = Theme.Color.muted
+        end
+    end
+
+    if text ~= lastCountdownText then
+        lastCountdownText = text
+        w.countdown.Text = text
+    end
+    if color ~= lastCountdownColor then
+        lastCountdownColor = color
+        w.countdown.TextColor3 = color
+    end
+end
+
 -- Repaints every widget from the mirror. Idempotent and cheap, so it runs on
 -- every sync tick rather than tracking which fields changed - a view that has to
 -- remember what it last drew is a view that will eventually draw something
@@ -581,22 +637,7 @@ local function update()
         w.drain.TextColor3 = Theme.Color.good
     end
 
-    -- Drain pauses while the shield is up, so quoting a countdown during grace
-    -- would be a lie about the number the player is watching most closely.
-    if state.gems <= 0 then
-        w.countdown.Text = "empty - grab a gem"
-        w.countdown.TextColor3 = Theme.Color.danger
-    elseif state.grace > 0 then
-        w.countdown.Text = "drain resumes when the shield drops"
-        w.countdown.TextColor3 = Theme.Color.good
-    elseif state.drainPerMinute > 0 then
-        local seconds = state.gems / state.drainPerMinute * 60
-        w.countdown.Text = string.format("runs dry in %s", formatDuration(seconds))
-        w.countdown.TextColor3 = Theme.Color.muted
-    else
-        w.countdown.Text = "holding steady"
-        w.countdown.TextColor3 = Theme.Color.muted
-    end
+    paintCountdown()
 
     -- Assigned rather than tweened: this is refreshed four times a second, and
     -- four overlapping tweens of one property is a fight, not an animation.
@@ -641,6 +682,13 @@ function Hud.start()
 
     ClientState.onChanged(function()
         update()
+    end)
+
+    -- The countdown alone is repainted off the frame clock rather than the
+    -- snapshot clock: it is the one number that has to be continuous, and four
+    -- repaints a second is what made it stair-step.
+    RunService.Heartbeat:Connect(function()
+        paintCountdown()
     end)
     Remotes.Feedback.OnClientEvent:Connect(handleFeedback)
 

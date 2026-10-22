@@ -47,6 +47,21 @@ export type Snapshot = {
 local PULL_RETRY_SECONDS = 1
 local MAX_PULL_ATTEMPTS = 15
 
+-- How long the countdown may keep projecting past the last snapshot. The stream
+-- runs at 4 Hz, so anything beyond a second and a half means the stream has
+-- stopped, and a readout that keeps counting down for a disconnected player is
+-- a lie with a deadline attached.
+local MAX_EXTRAPOLATION_SECONDS = 1.5
+
+-- CurseSystem bills once a second (its TICK_SECONDS) while snapshots arrive at
+-- 4 Hz, so three of every four snapshots restate a balance nobody has touched
+-- since the last one. A snapshot within this much drain of the projection is
+-- that lagging tick rather than news, and re-anchoring on it is what makes a
+-- countdown tick backwards. A real event - one gem, at any reachable rate - is
+-- always larger than the tolerance.
+local BILLING_SECONDS = 1
+local ANCHOR_TOLERANCE_TICKS = 1.25
+
 local state: Snapshot = {
     gems = Config.Economy.STARTING_GEMS,
     drainPerMinute = 0,
@@ -58,6 +73,20 @@ local state: Snapshot = {
 }
 
 local loaded = false
+
+-- The anchor the projected countdown reads from: the balance at a known moment
+-- and the rate in force since. A snapshot is a place to project from, not only
+-- a value to draw.
+local anchor = {
+    gems = state.gems,
+    drain = 0,
+    clock = os.clock(),
+}
+
+-- When the last snapshot arrived, whatever it said. Deliberately separate from
+-- anchor.clock: a snapshot that only restates a lagging balance must not reset
+-- the anchor, but it does prove the stream is still alive.
+local lastSyncClock = anchor.clock
 
 -- BindableEvent rather than a hand-rolled signal: this is one of the few
 -- genuinely cross-cutting notifications in the client, and the built-in comes
@@ -71,7 +100,12 @@ local function apply(snapshot: any)
     end
 
     if Util.isFiniteNumber(snapshot.gems) then
-        state.gems = math.max(0, math.floor(snapshot.gems))
+        -- NOT floored. The server bills fractionally (applyDrain subtracts
+        -- rate/60 per second), so the fraction is the difference between a
+        -- countdown that slides and one that jumps a whole gem at a time.
+        -- Views that must show a whole number floor it themselves, and
+        -- Util.abbreviate already does exactly that.
+        state.gems = math.max(0, snapshot.gems)
     end
     if Util.isFiniteNumber(snapshot.drainPerMinute) then
         state.drainPerMinute = math.max(0, snapshot.drainPerMinute)
@@ -113,12 +147,70 @@ local function apply(snapshot: any)
         state.collection = entries
     end
 
+    -- Anchoring, in the one function every snapshot passes through, so a push
+    -- and a pull cannot anchor at different moments.
+    local now = os.clock()
+    local drain = state.drainPerMinute
+
+    if state.grace > 0 or drain <= 0 then
+        -- Nothing is being billed - the shield is up, or there is no rate at all
+        -- - so a projection would invent a drain that is not happening.
+        anchor.gems = state.gems
+        anchor.drain = drain
+        anchor.clock = now
+    else
+        local age = math.max(0, now - anchor.clock)
+        local projected = anchor.gems - anchor.drain / 60 * age
+        local tolerance = math.max(anchor.drain, drain)
+            / 60
+            * BILLING_SECONDS
+            * ANCHOR_TOLERANCE_TICKS
+
+        -- Only two things are worth moving the anchor for: a balance the
+        -- projection cannot explain (a pickup, a summon's price, a bill the
+        -- client slept through) and a change of rate. Everything else is the
+        -- billing tick restating itself, and re-anchoring on that is exactly
+        -- what makes a countdown tick backwards. On a rate change the label is
+        -- about to jump anyway, so the phase is resynced at the same moment
+        -- rather than lagging a second behind the new rate.
+        if drain ~= anchor.drain or math.abs(state.gems - projected) > tolerance then
+            anchor.gems = state.gems
+            anchor.clock = now
+        end
+
+        anchor.drain = drain
+    end
+
+    lastSyncClock = now
+
     loaded = true
     changed:Fire(state)
 end
 
 function ClientState.get(): Snapshot
     return state
+end
+
+-- Seconds until the balance reaches zero, projected along the rate the server
+-- last reported. Returns nil when nothing is draining.
+--
+-- This is an interpolation, not a second economy: the client never recomputes
+-- the rate, so mercy, the shrine multiplier and upkeep all arrive as rate
+-- changes in the ordinary snapshot. What it recovers is the fraction of a gem
+-- the snapped balance throws away, which is the difference between a countdown
+-- that slides and one that holds still for 60/rate seconds and then lurches -
+-- eight of them at the base drain.
+function ClientState.remainingSeconds(): number?
+    if anchor.drain <= 0 then
+        return nil
+    end
+
+    -- The projection stops a second and a half after the last snapshot: a dead
+    -- stream must freeze the readout, not walk a disconnected player to zero.
+    local clock = math.min(os.clock(), lastSyncClock + MAX_EXTRAPOLATION_SECONDS)
+    local age = math.max(0, clock - anchor.clock)
+    local gems = math.max(0, anchor.gems - anchor.drain / 60 * age)
+    return gems / anchor.drain * 60
 end
 
 function ClientState.isLoaded(): boolean

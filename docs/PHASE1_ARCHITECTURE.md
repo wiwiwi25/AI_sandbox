@@ -264,9 +264,9 @@ not the project.
 |--------|----:|-----|----------------|
 | `Main.client.luau` | 44 | Bootstrap: `ClientState` -> `Hud` -> `EffectFx` -> `SpinFx`, plus its two tag registrations. | — |
 | `Imports.luau` | 5 | The one `WaitForChild` chain for shared modules. | the package |
-| `ClientState.luau` | 159 | The client's mirror of server truth. No independent copy of any number. | `get()`, `isLoaded()`, `onChanged(cb)`, `start()` + `Snapshot`, `CollectionEntry` |
+| `ClientState.luau` | 251 | The client's mirror of server truth. No independent copy of any number; the one value it projects between snapshots is the run-dry countdown, from the rate the server sent. | `get()`, `remainingSeconds()`, `isLoaded()`, `onChanged(cb)`, `start()` + `Snapshot`, `CollectionEntry` |
 | `Theme.luau` | 199 | Colours, fonts, rarity palette and widget factories. Asset-free. | `Color`, `Font`, `Rarity`, `RarityOrder`, `rarityColor`, `rarityRank`, `corner`, `stroke`, `pad`, `tween`, `frame`, `label`, `button` |
-| `Hud.luau` | 653 | The UI composition root: builds every widget, owns `CollectionPanel`, repaints at 4 Hz. | `start()` |
+| `Hud.luau` | 701 | The UI composition root: builds every widget, owns `CollectionPanel`, repaints at 4 Hz — plus the countdown every frame. | `start()` |
 | `CollectionPanel.luau` | 267 | The grid of collection cards, each with a live 3D preview; undiscovered species are silhouettes. | `create(parent)`, `setEntries(entries)`, `toggle()`, `isOpen()` |
 | `EffectFx.luau` | 206 | World-space feedback: pickup pops, reveal flashes, witness flashes. | `start()` |
 | `SpinFx.luau` | 137 | The one ambient animation loop, driven by CollectionService tags. | `track(tag, spin, bobHeight, bobSpeed)`, `start()`, `count()` |
@@ -380,6 +380,17 @@ future view) through `onChanged`. `Hud` repaints from
 `ClientState.get()` on the same 4 Hz tick, which is why the HUD keeps **no**
 independent balance copy: there is exactly one number on the client, and it arrived
 from the server.
+
+The one value the client moves between snapshots is the run-dry countdown, and it
+is still not an independent number: `ClientState.remainingSeconds()` projects
+`balance - rate/60 * age` from the last anchor at the rate the server sent with it
+(see [§12](#12-the-client-presentation-layer)). The anchor moves only when a
+snapshot disagrees with that projection by more than one billing tick
+(`CurseSystem` bills at 1 Hz, the stream runs at 4 Hz) or when the rate itself
+changes — re-anchoring on every snapshot would hand the label back the drain it
+had already accounted for and make it tick *backwards*. A dead stream freezes the
+projection 1.5 s after the last snapshot instead of walking a disconnected player
+to zero.
 
 ---
 
@@ -635,13 +646,16 @@ what anything looks like; the other modules ask it for widgets.
 ### `Hud.luau` — the composition root
 
 `Hud.start()` builds every widget and then repaints from `ClientState.get()` on each
-4 Hz snapshot. Its widget set, top to bottom:
+4 Hz snapshot. `countdown` is the exception: it is repainted from `RunService.Heartbeat`
+off `ClientState.remainingSeconds()`, because it is the one number that has to be
+continuous — as a function of the snapped balance it could only move when a whole gem
+left, i.e. in strides of `60/drain` seconds. Its widget set, top to bottom:
 
 | Widget | Shows |
 |--------|-------|
 | `balance` | The gem counter — the player's number and their health bar at once |
 | `drain` | Gems/min, straight from `CurseSystem.currentRatePerMinute` |
-| `countdown` | Time to empty at the current rate (the reason the drain is not abstract) |
+| `countdown` | Time to empty, projected every frame from the last snapshot and the rate that came with it, so it decrements a second at a time instead of holding for `60/drain` seconds and then lurching |
 | `track` + `barFill` | The reserve bar: the same number, but glanceable |
 | `grace` | The spawn-grace / shield pill while grace remains |
 | `summon` | The **next summon price**, and it rewrites the altar `ProximityPrompt.ObjectText` so the world and the HUD never disagree about the cost |
@@ -736,7 +750,11 @@ Rules the structure enforces, and rules only review can enforce.
    place to look.
 3. **Requires point one way.** No shared module may require `Modules`.
 4. **The client holds no independent copy of a server number.** A view paints from
-   `ClientState.get()`; it never accumulates its own counter.
+   `ClientState.get()`; it never accumulates its own counter. The single value the
+   client projects forward is the run-dry countdown, and only because the balance it
+   would otherwise show is quantised to whole gems: it is `balance - rate/60 * age` at
+   the rate the server sent, re-anchored on the first snapshot that disagrees with it
+   ([§12](#12-the-client-presentation-layer)).
 5. **`Feedback` is never state-bearing.** If a value must be true for gameplay, it
    travels in a `StateSync` snapshot.
 6. **Anything the client can trigger is validated server-side** by re-measuring, not

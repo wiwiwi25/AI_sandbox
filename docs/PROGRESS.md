@@ -7,16 +7,17 @@ why, and what is still open. The authoritative documents are
 [`PHASE1_DESIGN.md`](PHASE1_DESIGN.md), [`PHASE1_PLAYTEST.md`](PHASE1_PLAYTEST.md) and
 [`ROADMAP.md`](ROADMAP.md); where this file and those disagree, they win.
 
-**Last updated:** 2026-10-22, after commit `500cdaf`.
+**Last updated:** 2026-10-22, after commit `500cdaf` plus the uncommitted countdown fix in §3.
 
 ---
 
 ## 1. Where the tree stands
 
-`.\check.ps1` passes (stylua clean, 26 files compile, luau-lsp 0 diagnostics), the offline
-respawn probe passes with zero failed checks, and `rojo build` produces
-`build/CursedGems.rbxlx` (about 205 KB). Nothing is half-finished: the working tree is
-clean and every commit below is self-contained.
+`.\check.ps1` passes (stylua clean, 26 files compile, luau-lsp 0 diagnostics), both
+offline probes (respawn, countdown) pass with zero failed checks, and `rojo build`
+produces `build/CursedGems.rbxlx` (about 205 KB). Nothing is half-finished: every
+commit below is self-contained, and the one change on top of them (§3, the countdown)
+is finished and probe-verified, waiting only for a Studio look before it is committed.
 
 | Commit | Change |
 |--------|--------|
@@ -68,7 +69,62 @@ ceiling and the part appears on the next scheduler tick, so the ceiling is inclu
 
 ---
 
-## 3. Altar z-fight: it was never the grass
+## 3. The run-dry countdown: a frozen label, not a slow drain
+
+The HUD's "runs dry in Xm Ys" held still and then jumped — the report was 1m 44s
+straight to 1m 16s. No drain arithmetic moved: the label was being redrawn from a
+number the client had quantised.
+
+**Cause.** `ClientState` stored `math.floor(snapshot.gems)`, and `Hud` recomputed
+`gems / drainPerMinute * 60` only when a snapshot arrived (4 Hz). The server bills
+fractionally — `PlayerDataService.applyDrain` subtracts `rate/60 * delta` once a
+second — so the client threw the fraction away and the label could only move when a
+whole gem left the balance: a stride of `60/drain` seconds, **8.0 s at the 7.5/min
+base**, 4.8 s with one creature, 12 s with none. It stood still for a stride, then
+lurched by one. A summon made it worse by changing the denominator under the same
+gems (13 gems read 1m 44s at 7.5/min and 1m 18s at 10/min).
+
+**Fix, client-side only** (`ClientState.luau`, `Hud.luau`):
+
+- the mirror keeps the fraction; `Util.abbreviate` already floors, so the counter
+  text is unchanged (asserted in the probe, not assumed);
+- `ClientState.remainingSeconds()` projects `balance - rate/60 * age` from an anchor,
+  at the rate the server sent — the client still never computes a rate of its own;
+- `Hud` repaints `countdown` from `RunService.Heartbeat`, and only when the rendered
+  string changes, so it is about one property write per second rather than sixty;
+- the anchor moves only on a balance event, a rate change, or a snapshot more than
+  1.25 billing ticks away from the projection. Three of every four snapshots are the
+  1 Hz billing tick restating itself, and re-anchoring on those made the label tick
+  *backwards* in the first draft of this fix — the probe caught it, which is the
+  reason the probe exists;
+- a dead stream freezes the projection 1.5 s after the last snapshot instead of
+  counting a disconnected player down to zero.
+
+**Evidence** (offline probe, real `Config`, 1 Hz billing / 4 Hz snapshots / 60 Hz
+frames, label read back from its own text; a "lurch" is a repaint over 1 s that no
+snapshot explains):
+
+| Scenario | Before | After |
+|---|---|---|
+| steady, 7.5/min, 55 s | 8.0 s strides, 7 lurches | 1.0 s steps, 0 lurches, 0 backward ticks |
+| same, drained to empty | 16 s strides once mercy halves the rate, 12 lurches | 1.0 s steps; the mercy change still shows (+39 s) |
+| 2 creatures, 12.5/min | 4-5 s strides, 7 lurches | 1.0 s steps, 0 lurches |
+| first summon at t=20 | 80 s jump | 78 s jump, nothing invented |
+| shrine entered at t=25 | 32 s freeze, then +208 s | 1 s steps, one +240 s at the entry |
+| snapshots stop at t=15 | frozen (nothing repaints) | frozen after 1.5 s, never reaches 0 |
+
+`Total failed checks: 0`. The text is still per-second by design (`formatDuration`
+floors), so the readout changes once a second; what is gone is the eight-second hold
+and the eight-second lurch. The probe certifies the arithmetic and the stride, not the
+modules — `Hud`/`ClientState` build Roblox instances at require time, so the gate is
+what certifies them.
+
+**Uncommitted at the time of writing.** The gate and the probe are green; it is left
+for one commit together with this section, once the label has been seen in Studio.
+
+---
+
+## 4. Altar z-fight: it was never the grass
 
 The diagnosis is worth keeping because the obvious hypothesis was wrong. `Shrine/Pad`
 (opaque marble, 52 studs across) and `Shrine/PadRing` (translucent neon, 58 studs across)
@@ -92,7 +148,7 @@ no raycasts in the tree — the change is purely visual.
 
 ---
 
-## 4. Open decisions and unresolved observations
+## 5. Open decisions and unresolved observations
 
 1. **The shrine fix has not been seen in Studio.** The geometry is verified (three new Y
    expressions present in the built place, `GROUND_Y = 0`, no coplanar pair remaining by
@@ -115,7 +171,7 @@ no raycasts in the tree — the change is purely visual.
 
 ---
 
-## 5. Next steps, in order
+## 6. Next steps, in order
 
 1. Playtest 2 in Studio: run [`PHASE1_PLAYTEST.md`](PHASE1_PLAYTEST.md) start to finish. A6
    now reads 8-12 s instead of 5-8 s; watch one empty spot twice to confirm the index really
@@ -128,20 +184,24 @@ no raycasts in the tree — the change is purely visual.
 
 ---
 
-## 6. How to re-verify without Studio
+## 7. How to re-verify without Studio
 
 ```powershell
 .\check.ps1                                                      # stylua + sourcemap + compile + analyze
 powershell -ExecutionPolicy Bypass -File build\_run_probe.ps1     # respawn probe, offline
+powershell -ExecutionPolicy Bypass -File build\_run_countdown_probe.ps1   # countdown probe, offline
 & 'tools\rojo\rojo.exe' build default.project.json -o build\CursedGems.rbxlx
 ```
 
 `rojo` is not on PATH — always call `tools\rojo\rojo.exe`. The probe injects the real
 `src/` modules into `build\_cursed_respawn_run.luau` on every run, so it cannot test a stale
-copy. `build/` is gitignored scratch space; `sourcemap.json` is committed and regenerated
-by `check.ps1`.
+copy. The countdown probe works the same way but injects only `Config` and `Util`: the two
+derivations it compares are transcribed from `Hud`/`ClientState`, which build Roblox
+instances at require time and cannot load offline. It certifies the arithmetic and the
+stride; the gate certifies the modules. `build/` is gitignored scratch space;
+`sourcemap.json` is committed and regenerated by `check.ps1`.
 
-## 7. Working rules (as agreed)
+## 8. Working rules (as agreed)
 
 - One change per commit, committed only once it is tested and green. Never commit
   unfinished work.
