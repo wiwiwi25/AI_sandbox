@@ -257,12 +257,17 @@ local function buildShrine(parent: Instance): Folder
     local groundY = Config.World.GROUND_Y
     local flat = Vector3.new(0, 0, 90)
 
+    -- Both tiles stand at least 0.15 studs clear of the grass and their up-faces
+    -- are 0.10 apart. They used to sit flush with the ground and level with each
+    -- other (both tops at exactly y = 0.60), so the opaque marble disc and the
+    -- translucent neon ring covering it fought for the same depth - that is the
+    -- shimmer that moved whenever the camera did.
     makePart({
         name = "Pad",
         shape = Enum.PartType.Cylinder,
         size = Vector3.new(0.6, radius * 2, radius * 2),
         rotation = flat,
-        position = Vector3.new(center.X, groundY + 0.3, center.Z),
+        position = Vector3.new(center.X, groundY + 0.45, center.Z),
         color = SHRINE_COLOR,
         material = Enum.Material.Marble,
         castShadow = false,
@@ -274,7 +279,7 @@ local function buildShrine(parent: Instance): Folder
         shape = Enum.PartType.Cylinder,
         size = Vector3.new(0.5, radius * 2 + 6, radius * 2 + 6),
         rotation = flat,
-        position = Vector3.new(center.X, groundY + 0.35, center.Z),
+        position = Vector3.new(center.X, groundY + 0.40, center.Z),
         color = Color3.fromRGB(150, 214, 255),
         material = Enum.Material.Neon,
         transparency = 0.4,
@@ -393,12 +398,16 @@ local function buildPens(parent: Folder): { Pen }
 
     local pens: { Pen } = {}
     for index, position in ipairs(PEN_POSITIONS) do
+        -- Lifted 0.15 clear of the grass for the same reason as the shrine
+        -- tiles: a disc sharing a depth band with the ground shimmers along its
+        -- rim as the camera moves. The pedestal's base stays buried inside the
+        -- pad, so it needs no change.
         local pad = makePart({
             name = string.format("Pen%dPad", index),
             shape = Enum.PartType.Cylinder,
             size = Vector3.new(0.5, PEN_PAD_RADIUS * 2, PEN_PAD_RADIUS * 2),
             rotation = Vector3.new(0, 0, 90),
-            position = Vector3.new(position.X, Config.World.GROUND_Y + 0.25, position.Z),
+            position = Vector3.new(position.X, Config.World.GROUND_Y + 0.40, position.Z),
             color = Color3.fromRGB(74, 72, 88),
             material = Enum.Material.Slate,
             castShadow = false,
