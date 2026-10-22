@@ -252,7 +252,7 @@ not the project.
 | `DataStoreLite.luau` | 441 | Persistence: session locks, schema merge, batched autosave, retries, memory fallback. | `new`, `acquire`, `getSession`, `markDirty`, `save`, `saveWithRetry`, `release`, `isMemoryOnly`, `getStats` |
 | `PlayerDataService.luau` | 514 | The **only** place a player's currency, collection or stats change. | `load`, `awaitSession`, `getSession`, `getData`, `getGems`, `addGems`, `spendGems`, `applyDrain`, `recordPickup`, `getCreatures`, `creatureCount`, `addCreature`, `lifetimeSummons`, `getSummonCost`, `getUpkeepPerMinute`, `getGraceRemaining`, `addCursedSeconds`, `getStoreStats`, `isMemoryOnly`, `start` |
 | `WorldBuilder.luau` | 748 | Deterministic, seeded construction of the whole map. | `build() -> BuildResult { folder, gemSpawnPoints, pens, shrineCenter }` |
-| `GemSystem.luau` | 453 | The gem field: spawn legality, pool target, prompts, pickup validation, respawn. | `start(points)`, `stop`, `getStats`, `forceReconcile` |
+| `GemSystem.luau` | 582 | The gem field: spawn legality, pool target, prompts, pickup validation, respawn destination. | `start(points)`, `stop`, `getStats`, `forceReconcile` |
 | `SummonSystem.luau` | 220 | The altars: spend gems, roll a creature, reveal it, notify witnesses. | `start(pens)`, `stop`, `getAltarCount` |
 | `CurseSystem.luau` | 241 | The drain: ticks the debt, escalates warnings, applies the curse. | `start(center)`, `stop`, `isCursed(player)`, `currentRatePerMinute(player)` |
 | `FollowerSystem.luau` | 205 | Keeps up to `MAX_VISIBLE_FOLLOWERS` creatures trailing each player. | `start`, `stop`, `getStats` |
@@ -455,12 +455,24 @@ gems divides income (measured: twelve gems in the widened pockets pays 10.2 gems
 instead of 12.5).
 
 A pick-up reserves its slot for 8-12 s (`RESPAWN_MIN_SECONDS`/`RESPAWN_MAX_SECONDS`, plus
-up to one 0.5 s scheduler tick) before the index is legal again, then respawns at a
-freshly randomised point.
-Randomised delay **and** location on purpose: a fixed respawn turns farming into a
-memorised route, which is a chore rather than a game. The reservation is what makes the
-delay real — the sweep skips cooling indices and counts pending respawns as gems the
-field is already owed, so it cannot refill the hole from somewhere else on its next tick.
+up to one 0.5 s scheduler tick), then the replacement is placed on **another point in another
+pocket**: the queue stores the collected spot, and the destination is drawn at fire time, with
+uniform probability, from the free points outside that spot's pocket. Pocket membership is
+derived once in `GemSystem.start` from `GEM_ZONES` by containment, so a point outside every
+pocket simply has no pocket to exclude.
+
+Randomised delay **and** location on purpose: a fixed respawn turns farming into a memorised
+route, which is a chore rather than a game, and a pocket that refilled itself would make
+standing still the best income in the game. The reservation is what makes the delay real — the
+sweep skips cooling indices and counts pending respawns as gems the field is already owed, so
+it cannot refill the hole from somewhere else on its next tick, and the collected point stays
+reserved until its replacement has been placed.
+
+The exclusion is a preference with a floor, not an absolute: when no point outside the
+collected pocket is free, the replacement takes a free point *inside* it (never the collected
+spot), and when the field has no free point at all it takes the spot back rather than starving.
+`respawnCandidates` holds the three tiers; with 64 points and a pool of at most 44 the first
+tier can never be empty, so the other two exist for a smaller map.
 
 `GemCatalog.expectedValue()` exists so this number is computed rather than asserted.
 

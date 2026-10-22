@@ -21,8 +21,20 @@
 
     Those legal positions now live in four pockets (Config.World.GEM_ZONES).
     Respawn is deliberately NOT bound to a zone: a zone that refilled itself
-    would make standing still the best income in the game. The draw below is
-    uniform over all four, which is what keeps movement mandatory.
+    would make standing still the best income in the game. So a pick-up reserves
+    its point for 8-12 s and then places the replacement on a DIFFERENT point in
+    a DIFFERENT pocket, drawn uniformly over the legal ones. Clicking a gem can
+    no longer make another gem appear under the cursor, and a camper cannot feed
+    the pocket they are standing in from itself.
+
+    Point -> pocket membership is derived here, once, from the same
+    Config.World.GEM_ZONES the points were generated from. Deriving it keeps the
+    layout in one owner and start(points) unchanged; a point that sits outside
+    every pocket (possible in a future map) simply has no pocket to exclude.
+
+    The exclusion is a preference with a floor, not an absolute: see
+    respawnCandidates for the three tiers and why the field prefers a repeat
+    over an empty pocket.
 
     Gems are pooled. The pool holds the Part, its PointLight and its
     ProximityPrompt; acquiring one only re-colours it for the rolled kind. A
@@ -69,7 +81,10 @@ export type GemRecord = {
 }
 
 export type PendingRespawn = {
-    index: number,
+    -- The legal point the gem was collected FROM. The replacement is chosen
+    -- against this, so the entry records history, not a destination: only at
+    -- fire time is the set of free points meaningful.
+    spot: number,
     at: number,
 }
 
@@ -77,6 +92,11 @@ local gemsFolder = Instance.new("Folder")
 gemsFolder.Name = "ActiveGems"
 
 local spawnPoints: { Vector3 } = {}
+-- Pocket membership per legal point, 1-based over spawnPoints; nil for a point
+-- that is outside every pocket. Built once in start() from Config.World.GEM_ZONES
+-- and never mutated afterwards, which is what lets a pending respawn look it up
+-- instead of carrying a copy that could drift.
+local zoneOfIndex: { number? } = {}
 local activeByPart: { [BasePart]: GemRecord } = {}
 local occupiedIndices: { [number]: boolean } = {}
 -- Indices whose gem was just collected and which are serving their respawn
@@ -173,6 +193,25 @@ local function activeCount(): number
     return count
 end
 
+-- Point -> pocket membership, derived from the same Config.World.GEM_ZONES the
+-- legal points were generated from. WorldBuilder samples every point inside its
+-- zone's disc, so containment - not nearest-centre - is the honest test: a point
+-- that belongs to no pocket stays nil instead of being forced into its closest
+-- one. Four zones against 64 points, once, at boot.
+local function classifyZones()
+    zoneOfIndex = {}
+    for index, point in ipairs(spawnPoints) do
+        for zoneIndex, zone in ipairs(Config.World.GEM_ZONES) do
+            -- The tolerance absorbs the float round-trip through distanceXZ for
+            -- a point sampled exactly on the rim.
+            if Util.distanceXZ(point, zone.center) <= zone.radius + 1e-3 then
+                zoneOfIndex[index] = zoneIndex
+                break
+            end
+        end
+    end
+end
+
 local function spawnAt(index: number)
     local position = spawnPoints[index]
     if not position or occupiedIndices[index] then
@@ -197,7 +236,10 @@ end
 -- leave). A number reserves the index for that long, which is the entire
 -- feature: without the reservation the sweep below sees "the pool is short" and
 -- refills from some other point on its next tick, which is indistinguishable
--- from the gem respawning instantly. That was the reported bug.
+-- from the gem respawning instantly. That was the reported bug. The same
+-- reservation keeps the collected point off the table until the replacement has
+-- been placed, so a deficit sweep cannot quietly re-use the spot the player is
+-- still standing on.
 local function despawn(part: BasePart, respawnDelay: number?)
     local record = activeByPart[part]
     if not record then
@@ -212,25 +254,27 @@ local function despawn(part: BasePart, respawnDelay: number?)
 
     if respawnDelay then
         coolingIndices[record.index] = true
-        table.insert(pendingRespawn, { index = record.index, at = os.clock() + respawnDelay })
+        table.insert(pendingRespawn, { spot = record.index, at = os.clock() + respawnDelay })
     end
 end
 
-local function pickIndex(): number?
-    local free: { number } = {}
-    for index = 1, #spawnPoints do
-        -- A cooling index belongs to the gem that was just collected. Handing it
-        -- out again would let a different gem appear in the same spot and hide
-        -- the delay entirely.
-        if not occupiedIndices[index] and not coolingIndices[index] then
-            table.insert(free, index)
-        end
-    end
-    if #free == 0 then
+local function isFree(index: number): boolean
+    -- A cooling index belongs to the gem that was just collected. Handing it out
+    -- would let a different gem appear in the same spot and hide the delay
+    -- entirely.
+    return not occupiedIndices[index] and not coolingIndices[index]
+end
+
+-- Turns a candidate list into one index. The player-distance rule lives HERE and
+-- only here, so the deficit path and the respawn path cannot drift apart. It is
+-- a preference, not a filter: a crowded server can block every candidate at once,
+-- and starving the field would be worse than spawning in view.
+local function pickFromCandidates(candidates: { number }): number?
+    if #candidates == 0 then
         return nil
     end
 
-    Util.shuffle(free, rng)
+    Util.shuffle(candidates, rng)
 
     local positions: { Vector3 } = {}
     for _, player in ipairs(Players:GetPlayers()) do
@@ -242,11 +286,11 @@ local function pickIndex(): number?
     end
 
     if #positions == 0 then
-        return free[1]
+        return candidates[1]
     end
 
     local fallback: number? = nil
-    for _, index in ipairs(free) do
+    for _, index in ipairs(candidates) do
         local candidate = spawnPoints[index]
         local tooClose = false
         for _, position in ipairs(positions) do
@@ -263,9 +307,76 @@ local function pickIndex(): number?
         fallback = fallback or index
     end
 
-    -- A crowded server can block every legal point at once. Starving the field
-    -- would be worse than spawning in view, so take the least bad option.
     return fallback
+end
+
+local function freeIndices(): { number }
+    local free: { number } = {}
+    for index = 1, #spawnPoints do
+        if isFree(index) then
+            table.insert(free, index)
+        end
+    end
+    return free
+end
+
+-- The deficit sweep's draw: nothing was collected, so there is no spot or pocket
+-- to steer around.
+local function pickIndex(): number?
+    return pickFromCandidates(freeIndices())
+end
+
+-- Where the replacement for the gem collected at `spot` belongs. Three tiers, in
+-- order of preference:
+--
+--   1. a free point in another pocket (or the source point belongs to no pocket);
+--   2. a free point in the same pocket, because no other pocket has one left;
+--   3. the collected spot itself, because the field has nothing else.
+--
+-- Tier 2 keeps the stricter half of the rule - never the same spot - and gives up
+-- the pocket half. Tier 3 gives up both. Relaxing beats the alternatives: an
+-- entry that waited for a legal destination would break the 8-12 s ceiling, and
+-- an entry that was dropped would make reconcile() refill the same spot with no
+-- delay at all, which is the bug the reservation exists to prevent.
+--
+-- With the shipped layout (4 pockets x 16 points, pool <= 44) tier 1 cannot fail:
+-- at least 20 points are free and at most 16 of them can sit in one pocket, so at
+-- least 4 of the free points are outside the collected pocket. Tiers 2 and 3 are
+-- for a smaller map, where they are reachable - and where the probe exercises
+-- them.
+local function respawnCandidates(spot: number): { { number } }
+    local zone = zoneOfIndex[spot]
+    local elsewhere: { number } = {}
+    local samePocket: { number } = {}
+
+    for index = 1, #spawnPoints do
+        -- The collected spot is not a candidate here: it is still cooling. Tier 3
+        -- adds it back explicitly, so all three tiers stay in one place.
+        if index ~= spot and isFree(index) then
+            if zone ~= nil and zoneOfIndex[index] == zone then
+                table.insert(samePocket, index)
+            else
+                table.insert(elsewhere, index)
+            end
+        end
+    end
+
+    local lastResort: { number } = {}
+    if not occupiedIndices[spot] then
+        table.insert(lastResort, spot)
+    end
+
+    return { elsewhere, samePocket, lastResort }
+end
+
+local function chooseRespawnIndex(spot: number): number?
+    for _, tier in ipairs(respawnCandidates(spot)) do
+        local index = pickFromCandidates(tier)
+        if index then
+            return index
+        end
+    end
+    return nil
 end
 
 local function processPendingRespawns()
@@ -280,9 +391,14 @@ local function processPendingRespawns()
             -- way the reservation ends here, so the queue cannot leak entries
             -- that will never fire.
             if activeCount() < target then
-                spawnAt(entry.index)
+                local destination = chooseRespawnIndex(entry.spot)
+                if destination then
+                    spawnAt(destination)
+                end
             end
-            coolingIndices[entry.index] = nil
+            -- Released only after the replacement is placed, so the collected
+            -- point cannot be handed out while the queue still owes a gem.
+            coolingIndices[entry.spot] = nil
             table.remove(pendingRespawn, index)
         else
             index += 1
@@ -406,6 +522,9 @@ function GemSystem.start(points: { Vector3 })
     running = true
 
     spawnPoints = points
+    -- Before the first reconcile(): a spawn that happens during the deficit draw
+    -- is allowed to ignore pockets, but a respawn that fires later is not.
+    classifyZones()
     gemsFolder.Parent = Workspace
 
     -- Prewarm only up to the minimum pool. Building the maximum on a one player
@@ -435,10 +554,20 @@ function GemSystem.stop()
 end
 
 function GemSystem.getStats()
+    -- `pendingSpots` is a debug/test surface, in the same spirit as
+    -- forceReconcile: the destination of a refill is deliberately not the
+    -- collected point, so the only way to attribute a refill to the slot that
+    -- was waiting for it is to be able to read the queue's sources.
+    local pendingSpots: { number } = {}
+    for _, entry in ipairs(pendingRespawn) do
+        table.insert(pendingSpots, entry.spot)
+    end
+
     return {
         spawnPoints = #spawnPoints,
         active = activeCount(),
         pending = #pendingRespawn,
+        pendingSpots = pendingSpots,
         target = targetPoolSize(),
     }
 end

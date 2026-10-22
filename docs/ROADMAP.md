@@ -86,11 +86,12 @@ exist to prove the arithmetic closes, not because 96 is sacred.
 
 ### 5.4 Zone richness (the anti-camping rule)
 
-Phase 1 respawns globally across all 64 legal points, which is what stops a pocket from
-feeding its own camper. v9 keeps that rule exactly and adds one number on top: every
-pocket carries a **richness** multiplier in `[0.75, 1.25]` that rises while the pocket
-is empty and falls as it is harvested (full strength after 90 s untouched, floor after
-three quick pickups). It multiplies the payout, not the table.
+Phase 1 respawns globally across all 64 legal points, and never into the pocket a gem was
+just taken from, which is what stops a pocket from feeding its own camper. v9 keeps that rule
+exactly and adds one number on top: every pocket carries a **richness** multiplier in
+`[0.75, 1.25]` that rises while the pocket is empty and falls as it is harvested (full
+strength after 90 s untouched, floor after three quick pickups). It multiplies the payout,
+not the table.
 
 Why this does not inflate the economy: the multiplier is bounded and symmetric around
 1.0, and the circuit the income model already assumes visits all four pockets, so the
@@ -105,9 +106,10 @@ construction* rather than by tuning:
 
 The wait is the other half. A pool of 16 over 64 points puts roughly four gems in each
 pocket, so a camper takes four and then competes for 16 respawns spread across four
-pockets - about a quarter of them. A live pool that is deliberately one gem short for
-8-12 s after every pick-up makes that wait worse, and v9 inherits it deliberately. The
-camper's realised rate is therefore a fraction of what its EV suggests, while the
+pockets - about a quarter of them, and none of the ones their own pick-ups trigger, since a
+replacement never lands in the pocket it came from. A live pool that is deliberately one gem
+short for 8-12 s after every pick-up makes that wait worse, and v9 inherits it deliberately.
+The camper's realised rate is therefore a fraction of what its EV suggests, while the
 travelling player keeps converting distance into gems.
 
 Richness is also where the rim pays off: a pocket at high richness can be told apart
@@ -187,6 +189,7 @@ income updates the net table in the same commit - rule 2 at the top of this file
 | Phase 1 close | Tuning pass recorded: speed 22/14, four pockets, spacing 13, base drain 8 |
 | Playtest 1 | Pockets widened 34 -> 50 studs and pushed 86 -> 108 from the shrine, pool 12 -> 16 to hold density, respawn delay made real by reserving the slot, HUD card moved out of the chat corner, base drain 8 -> 7.5 to keep `+5/min` |
 | Playtest 2 | Respawn window 5-8 -> 8-12 s (`RESPAWN_MIN_SECONDS`/`RESPAWN_MAX_SECONDS`), pool and drain deliberately untouched: ~1.6 slots cooling instead of 1.0, so ~14.4 of 16 gems are visible at the tuned 9.5 pickups/min (-3.7% density, inside playtest noise). Shrine and pen tiles raised 0.15 studs clear of the ground and their up-faces separated by 0.10, fixing the coplanar z-fight |
+| Playtest 2 follow-up | Two reported-feel fixes, no tuning: the HUD countdown is projected from the live clock instead of redrawn from a floored balance (it held for 8 s and then lurched), and a respawn now places its gem on another point in another pocket instead of the spot just collected. Pool, drain, the 8-12 s window and the income model are untouched |
 | This document | Created. v6-v8 reserved, v9 specified as design only |
 
 See also: [`PHASE1_DESIGN.md`](PHASE1_DESIGN.md) (balance and reasoning),
